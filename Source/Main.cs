@@ -86,6 +86,7 @@ public class AICoreMod : Mod
         {
             // This performs any necessary setup when the game is loaded
 
+
             // Personas.UpdateVoiceInformation();
             // Tools.ReloadGPTModels();
             if (Settings.IsConfigured)

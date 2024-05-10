@@ -34,7 +34,7 @@ public static class WorkQueue
         }
         catch (Exception ex)
         {
-            Logger.Error($"An error occurred during the updating of DesignationQueueManager {ex}");
+            LogTool.Error($"An error occurred during the updating of DesignationQueueManager {ex}");
         }
     }
 
@@ -102,7 +102,7 @@ public static class OrderTypeExtensions
     private static readonly Dictionary<OrderType, string> orderTypeStringMapping =
         new() { { OrderType.Designate, "designated" }, { OrderType.Cancel, "cancelled" } };
 
-    public static string? ToActionVerb(this OrderType orderType)
+    public static string ToActionVerb(this OrderType orderType)
     {
         return orderTypeStringMapping.TryGetValue(orderType, out string stringValue)
             ? stringValue

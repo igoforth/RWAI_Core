@@ -1,9 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Verse;
@@ -18,22 +15,13 @@ public class BootstrapTool
         "RWAILib"
     );
     private static readonly string binPath = Path.Combine(configPath, "bin");
-    private const string bootstrapUrl = "https://github.com/igoforth/RWAILib/AIServer/Server.py";
-    private const string cosmosUrl = "https://cosmo.zip/pub/cosmos/";
-    private const string bashUrl = cosmosUrl + "bin/bash";
-    private static readonly string bashPath = Path.Combine(binPath, "bash.com");
-    private const string pythonUrl = cosmosUrl + "bin/pypack1";
-    private static readonly string pythonPath = Path.Combine(binPath, "python");
-    private const string webZipUrl = cosmosUrl + "zip/web.zip";
-    private static readonly string webZipPath = Path.Combine(Path.GetTempPath(), "web.zip");
-    private const string gitZipUrl = cosmosUrl + "zip/git.zip";
-    private static readonly string gitZipPath = Path.Combine(Path.GetTempPath(), "git.zip");
-    private static readonly string[] cmdArgs =
-    {
-        "bash",
-        "-c",
-        "curl -s https://raw.githubusercontent.com/igoforth/RWAILib/AIServer/Server.py | python -"
-    };
+    private const string bootstrapUrl =
+        "https://raw.githubusercontent.com/igoforth/RWAILib/AIServer/Bootstrap.py";
+    private const string pythonUrl = "https://cosmo.zip/pub/cosmos/bin/python";
+    private static readonly string pythonPath = Path.Combine(
+        binPath,
+        Environment.OSVersion.Platform == PlatformID.Win32NT ? "python.com" : "python"
+    );
 
     // Bootstrap process information
     private Process bootstrapProcess;
@@ -47,28 +35,86 @@ public class BootstrapTool
             Directory.CreateDirectory(binPath);
         }
 
-        // Create download jobs for binaries
-        await DownloadFile(bashUrl, bashPath);
-        await DownloadFile(pythonUrl, pythonPath);
-        await DownloadFile(webZipUrl, webZipPath, extractPath: configPath);
-        await DownloadFile(gitZipUrl, gitZipPath, extractPath: configPath);
+        try
+        {
+            // Create download jobs
+            var pythonDownload = DownloadFile(pythonUrl, pythonPath);
+            var scriptDownload = DownloadString(bootstrapUrl);
+            await Task.WhenAll(pythonDownload, scriptDownload);
 
-        // Add the bin directory to the PATH
-        Environment.SetEnvironmentVariable(
-            "PATH",
-            $"{binPath};{Environment.GetEnvironmentVariable("PATH")}"
-        );
+            // If OS is not Windows, make python executable
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            {
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = "chmod",
+                    Arguments = $"+x {pythonPath}",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using (Process chmodProcess = new Process { StartInfo = psi })
+                {
+                    chmodProcess.Start();
+                    chmodProcess.WaitForExit();
 
-        // Run the bootstrap process
-        BootstrapTool bt = new BootstrapTool();
-        await bt.Bootstrap(cmdArgs, configPath);
+                    if (chmodProcess.ExitCode != 0)
+                    {
+                        LogTool.Error("Failed to set executable permission on Python binary.");
+                        return;
+                    }
+                }
+            }
+
+            // Get the script content
+            string scriptContent = await scriptDownload;
+
+            if (string.IsNullOrEmpty(scriptContent))
+            {
+                LogTool.Error("Failed to download the bootstrap script.");
+                return;
+            }
+
+            // Run the bootstrap process
+            BootstrapTool bt = new BootstrapTool();
+            await bt.Bootstrap(pythonPath, scriptContent);
+        }
+        catch (Exception ex)
+        {
+            LogTool.Error($"An error occurred during download or processing: {ex.Message}");
+        }
     }
 
-    public static async Task DownloadFile(
-        string fileUrl,
-        string destinationPath,
-        string extractPath = ""
-    )
+    public static async Task<Stream> Download(string fileUrl)
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            // Download the file
+            using (var response = await client.GetAsync(fileUrl))
+            {
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStreamAsync();
+            }
+        }
+    }
+
+    public static async Task<string> DownloadString(string fileUrl)
+    {
+        using (Stream stream = await Download(fileUrl))
+        {
+            if (stream == null)
+            {
+                LogTool.Error("Download failed.");
+                return null;
+            }
+
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                return await reader.ReadToEndAsync();
+            }
+        }
+    }
+
+    public static async Task DownloadFile(string fileUrl, string destinationPath)
     {
         // Ensure destinationPath is not directory
         if (Directory.Exists(destinationPath))
@@ -79,63 +125,30 @@ public class BootstrapTool
         // Ensure the destination directory exists
         Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
 
-        try
+        // Download the file
+        using (Stream stream = await Download(fileUrl))
         {
-            using (HttpClient client = new HttpClient())
+            if (stream == null)
             {
-                // Download the file
-                using (var response = await client.GetAsync(fileUrl))
-                {
-                    response.EnsureSuccessStatusCode();
-                    using (var ms = await response.Content.ReadAsStreamAsync())
-                    {
-                        using (
-                            var fs = new FileStream(
-                                destinationPath,
-                                FileMode.Create,
-                                FileAccess.Write
-                            )
-                        )
-                        {
-                            ms.CopyTo(fs);
-                        }
-                    }
-                }
-
-                // Extract the zip file
-                LogTool.Message("Download completed successfully.");
-            }
-        }
-        catch (Exception ex)
-        {
-            LogTool.Error($"An error occurred: {ex.Message}");
-            return;
-        }
-
-        if (extractPath != "")
-        {
-            try
-            {
-                ZipFile.ExtractToDirectory(destinationPath, extractPath);
-                LogTool.Message("Extraction completed successfully.");
-            }
-            catch (Exception ex)
-            {
-                LogTool.Error($"An error occurred: {ex.Message}");
+                LogTool.Error("Download failed.");
                 return;
+            }
+
+            using (FileStream fs = File.Create(destinationPath))
+            {
+                await stream.CopyToAsync(fs);
             }
         }
     }
 
-    public async Task Bootstrap(string[] cmdArgs, string workDir)
+    public async Task Bootstrap(string pythonBin, string scriptContent)
     {
         eventHandled = new TaskCompletionSource<bool>();
 
         ProcessStartInfo psi = new ProcessStartInfo
         {
-            FileName = cmdArgs[0],
-            Arguments = $"{cmdArgs[1]} \"{cmdArgs[2]}\"",
-            WorkingDirectory = workDir,
+            FileName = pythonBin,
+            WorkingDirectory = configPath,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -150,6 +163,12 @@ public class BootstrapTool
                 bootstrapProcess.EnableRaisingEvents = true;
                 bootstrapProcess.Exited += new EventHandler(ProcessExited);
                 bootstrapProcess.Start();
+
+                // Write the multiline script content to the process
+                using (StreamWriter sw = bootstrapProcess.StandardInput)
+                {
+                    sw.WriteLine(scriptContent);
+                }
 
                 // Read the output stream first and then wait.
                 bootstrapProcess.BeginOutputReadLine();
