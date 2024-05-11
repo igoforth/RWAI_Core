@@ -188,44 +188,44 @@ public static class Tools
         return result;
     }
 
-    public static void ExtractPawnsFromLog(LogEntry entry, out Pawn from, out Pawn to)
-    {
-        from = null;
-        to = null;
+    // public static void ExtractPawnsFromLog(LogEntry entry, out Pawn from, out Pawn to)
+    // {
+    //     from = null;
+    //     to = null;
 
-        if (entry is BattleLogEntry_Event @event)
-        {
-            from = @event.initiatorPawn;
-            to = @event.subjectPawn;
-        }
-        else if (entry is BattleLogEntry_DamageTaken damage)
-        {
-            from = damage.initiatorPawn;
-            to = damage.recipientPawn;
-        }
-        else if (entry is BattleLogEntry_ExplosionImpact explosion)
-        {
-            from = explosion.initiatorPawn;
-            to = explosion.recipientPawn;
-        }
-        else if (entry is BattleLogEntry_MeleeCombat melee)
-        {
-            from = melee.initiator;
-            to = melee.recipientPawn;
-        }
-        else if (entry is BattleLogEntry_RangedFire fire)
-        {
-            from = fire.initiatorPawn;
-            to = fire.recipientPawn;
-        }
-        else if (entry is BattleLogEntry_RangedImpact impact)
-        {
-            from = impact.initiatorPawn;
-            to = impact.recipientPawn;
-        }
-        else if (entry is BattleLogEntry_StateTransition transition)
-            from = transition.subjectPawn;
-    }
+    //     if (entry is BattleLogEntry_Event @event)
+    //     {
+    //         from = @event.initiatorPawn;
+    //         to = @event.subjectPawn;
+    //     }
+    //     else if (entry is BattleLogEntry_DamageTaken damage)
+    //     {
+    //         from = damage.initiatorPawn;
+    //         to = damage.recipientPawn;
+    //     }
+    //     else if (entry is BattleLogEntry_ExplosionImpact explosion)
+    //     {
+    //         from = explosion.initiatorPawn;
+    //         to = explosion.recipientPawn;
+    //     }
+    //     else if (entry is BattleLogEntry_MeleeCombat melee)
+    //     {
+    //         from = melee.initiator;
+    //         to = melee.recipientPawn;
+    //     }
+    //     else if (entry is BattleLogEntry_RangedFire fire)
+    //     {
+    //         from = fire.initiatorPawn;
+    //         to = fire.recipientPawn;
+    //     }
+    //     else if (entry is BattleLogEntry_RangedImpact impact)
+    //     {
+    //         from = impact.initiatorPawn;
+    //         to = impact.recipientPawn;
+    //     }
+    //     else if (entry is BattleLogEntry_StateTransition transition)
+    //         from = transition.subjectPawn;
+    // }
 
     // gets the job label from a specific pawn
     public static string GetJobLabelFromPawn(Job job, Pawn driverPawn)

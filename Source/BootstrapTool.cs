@@ -1,34 +1,129 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using Verse;
 
 namespace AICore;
 
+// once configured, layout should look like this:
+// root:
+//   Darwin  - ~/Library/Application Support/RimWorld/RWAI/
+//   Windows - %APPDATA%\..\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios\RWAI\
+//   Linux   - $HOME/.config/unity3d/Ludeon Studios/RimWorld/RWAI/
+// files:
+// ./bin/llamafile (win llamafile.com)
+// ./bin/python (win python.com)
+// ./models/Phi-3-mini-128k-instruct.Q4_K_M.gguf
+// ./AIServer.zip
+// ./.version
 public class BootstrapTool
 {
     public static bool DEBUG = true;
-    public static readonly string configPath = Path.Combine(
+    public static bool isConfigured = checkConfigured();
+    public static bool internetAccess = false;
+    public static bool hasServerUpdate = checkServerUpdate();
+    private static readonly PlatformID platform = Environment.OSVersion.Platform;
+    private static readonly string modConfigPath = Path.Combine(
         GenFilePaths.ConfigFolderPath,
-        "RWAILib"
+        "RWAI"
     );
-    private static readonly string binPath = Path.Combine(configPath, "bin");
-    private const string bootstrapUrl =
-        "https://raw.githubusercontent.com/igoforth/RWAILib/AIServer/Bootstrap.py";
-    private const string pythonUrl = "https://cosmo.zip/pub/cosmos/bin/python";
     private static readonly string pythonPath = Path.Combine(
-        binPath,
-        Environment.OSVersion.Platform == PlatformID.Win32NT ? "python.com" : "python"
+        modConfigPath,
+        "bin",
+        platform == PlatformID.Win32NT ? "python.com" : "python"
     );
 
-    // Bootstrap process information
     private Process bootstrapProcess;
     private static TaskCompletionSource<bool> eventHandled;
 
+    private static bool checkConfigured()
+    {
+        var file_path_list = new[]
+        {
+            Path.Combine(
+                modConfigPath,
+                "bin",
+                platform == PlatformID.Win32NT ? "llamafile.com" : "python"
+            ),
+            pythonPath,
+            Path.Combine(modConfigPath, "models", "Phi-3-mini-128k-instruct.Q4_K_M.gguf"),
+            Path.Combine(modConfigPath, "AIServer.zip"),
+            Path.Combine(modConfigPath, ".version")
+        };
+
+        foreach (var file_path in file_path_list)
+            if (!File.Exists(file_path))
+                return false;
+        return true;
+    }
+
+    // compare github api against pinned "./.version"
+    private static bool checkServerUpdate()
+    {
+        // check for ".version" file
+        var versionPath = Path.Combine(modConfigPath, ".version");
+        if (!File.Exists(versionPath))
+            return true;
+
+        // check for internet
+        internetAccess = checkInternet();
+        if (!internetAccess)
+        {
+            return false;
+        }
+
+        // compare ".version" file with latest
+        var reader = File.OpenText(versionPath);
+        const string releaseUrl = "https://api.github.com/repos/igoforth/RWAILib/releases/latest";
+        var newRelease = "";
+        var oldRelease = "";
+
+        // compare online version
+        Tools.SafeAsync(async () =>
+        {
+            Task<string> newReleaseT = DownloadString(releaseUrl);
+            Task<string> oldReleaseT = reader.ReadToEndAsync();
+            await Task.WhenAll(newReleaseT, oldReleaseT);
+        });
+
+        reader.Close();
+        dynamic json = JObject.Parse(newRelease);
+        return json.tag_name != oldRelease;
+    }
+
+    public static bool checkInternet()
+    {
+        try
+        {
+            // check for internet access
+            var pingSender = new Ping();
+            PingReply pingReply = pingSender.Send("dns.google");
+            if (pingReply.Status == IPStatus.Success)
+            {
+                return true;
+            }
+        }
+        catch (PingException)
+        {
+            return false;
+        }
+        return false;
+    }
+
     public static async Task Run()
     {
+        const string bootstrapUrl =
+            "https://github.com/igoforth/RWAILib/releases/latest/download/Bootstrap.py";
+        const string pythonUrl = "https://cosmo.zip/pub/cosmos/bin/python";
+        var binPath = Directory.GetParent(pythonPath).FullName;
+
+        LogTool.Message("RWAI has begun bootstrapping.");
+
         // Create the bin directory if it doesn't exist
         if (!Directory.Exists(binPath))
         {
@@ -38,21 +133,22 @@ public class BootstrapTool
         try
         {
             // Create download jobs
-            var pythonDownload = DownloadFile(pythonUrl, pythonPath);
-            var scriptDownload = DownloadString(bootstrapUrl);
+            Task pythonDownload = DownloadFile(pythonUrl, pythonPath);
+            Task<string> scriptDownload = DownloadString(bootstrapUrl);
             await Task.WhenAll(pythonDownload, scriptDownload);
 
             // If OS is not Windows, make python executable
-            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            if (platform != PlatformID.Win32NT)
             {
-                ProcessStartInfo psi = new ProcessStartInfo
+                var chmodPSI = new ProcessStartInfo
                 {
                     FileName = "chmod",
                     Arguments = $"+x {pythonPath}",
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
-                using (Process chmodProcess = new Process { StartInfo = psi })
+
+                using (Process chmodProcess = new Process { StartInfo = chmodPSI })
                 {
                     chmodProcess.Start();
                     chmodProcess.WaitForExit();
@@ -66,8 +162,7 @@ public class BootstrapTool
             }
 
             // Get the script content
-            string scriptContent = await scriptDownload;
-
+            string scriptContent = scriptDownload.Result;
             if (string.IsNullOrEmpty(scriptContent))
             {
                 LogTool.Error("Failed to download the bootstrap script.");
@@ -144,11 +239,10 @@ public class BootstrapTool
     public async Task Bootstrap(string pythonBin, string scriptContent)
     {
         eventHandled = new TaskCompletionSource<bool>();
-
-        ProcessStartInfo psi = new ProcessStartInfo
+        var pythonPSI = new ProcessStartInfo
         {
             FileName = pythonBin,
-            WorkingDirectory = configPath,
+            WorkingDirectory = modConfigPath,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -156,7 +250,7 @@ public class BootstrapTool
             CreateNoWindow = true
         };
 
-        using (bootstrapProcess = new Process { StartInfo = psi })
+        using (bootstrapProcess = new Process { StartInfo = pythonPSI })
         {
             try
             {

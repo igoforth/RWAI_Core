@@ -79,12 +79,12 @@ public static class WorkQueue
             string combinedMessage = GenText.ToCommaList(orders, true);
             if (!string.IsNullOrEmpty(combinedMessage) && combinedMessage != "none")
             {
-                Personas.Add($"The player {combinedMessage}", 3);
+                // Personas.Add($"The player {combinedMessage}", 3);
             }
         }
         catch (Exception ex)
         {
-            Logger.Error(
+            LogTool.Error(
                 $"An error occurred while flushing the queue in DesignationQueueManager {ex}"
             );
         }

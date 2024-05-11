@@ -51,8 +51,8 @@ public static class UpdateColonySetting
             + $"Current weather: {currentWeather.LabelCap}\n "
             + $"Temperature: {map.mapTemperature.OutdoorTemp:0.#}°C\n "
             + $"Area: {biomeName}, {biomeDescription}";
-        Personas.Add(message, 1);
-        RecordKeeper.ColonySetting = message;
+        // Personas.Add(message, 1);
+        // RecordKeeper.ColonySetting = message;
         //Logger.Message($"RecordKeeper.ColonySetting: {RecordKeeper.ColonySetting}");
     }
 }

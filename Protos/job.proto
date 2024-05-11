@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option csharp_namespace = "AICore";
+
+package job;
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+service JobManager {
+  rpc JobService (JobRequest) returns (JobResponse);
+}
+
+// Request an AI job
+message JobRequest {
+  uint32 job_id = 1; // Client may specify or server may generate and return it
+  string job_type = 2; // Type of job, e.g., "description_generation"
+  google.protobuf.Timestamp time = 3;
+  bytes payload = 15; // Encoded data necessary for the job
+}
+
+// Receive AI response
+message JobResponse {
+  uint32 job_id = 1; // Echo or newly assigned job ID
+  string job_type = 2; // Type of job returned
+  google.protobuf.Duration duration = 3; // Whether the job was accepted into the queue
+  bytes payload = 15; // Encoded result
+}

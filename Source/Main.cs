@@ -80,7 +80,6 @@ public class AICoreMod : Mod
 
         var harmony = new Harmony("net.trojan.rimworld.mod.AICore");
         harmony.PatchAll();
-        // CrossPromotion.Install(76561197973010050);
 
         LongEventHandler.ExecuteWhenFinished(() =>
         {

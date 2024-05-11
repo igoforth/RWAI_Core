@@ -54,6 +54,53 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
     }
 }
 
+// draw ai server status on bottom right
+//
+[HarmonyPatch(typeof(UIRoot_Play), nameof(UIRoot_Play.UIRootOnGUI))]
+public static class UIRoot_Play_UIRootOnGUI_Patch
+{
+    static readonly Color background = new(0f, 0f, 0f, 0.4f);
+    static readonly Color32 onlineColor = new(0x3B, 0xA5, 0x5C, 0xFF); // Green color for online status
+    static readonly Color32 startingColor = new(0xFA, 0xA6, 0x1A, 0xFF); // Yellow color for starting status
+    static readonly Color32 errorColor = new(0xED, 0x42, 0x45, 0xFF); // Red color for error status
+    static readonly Color32 offlineColor = new(0x74, 0x7F, 0x8D, 0xFF); // Grey color for offline status
+    static string serverStatus = "Server Offline"; // Default status
+
+    public static void Postfix()
+    {
+        var (sw, sh) = (UI.screenWidth, UI.screenHeight);
+        var statusWidth = 200f;
+        var statusHeight = 30f;
+        var rect = new Rect(
+            sw - statusWidth - 10,
+            sh - statusHeight - 10,
+            statusWidth,
+            statusHeight
+        );
+
+        // Draw semi-transparent background
+        Widgets.DrawBoxSolid(rect, background);
+
+        // Prepare to draw the text and icon
+        var anchor = Text.Anchor;
+        var font = Text.Font;
+        Text.Font = GameFont.Small;
+        Text.Anchor = TextAnchor.MiddleRight;
+
+        // Draw the server status text
+        Widgets.Label(rect, serverStatus);
+
+        // Draw status color dot
+        var colorDotRect = new Rect(rect.x - 20, rect.y + (statusHeight / 2) - 5, 10, 10);
+        Color color = serverStatus.Contains("Online") ? onlineColor : offlineColor;
+        Widgets.DrawBoxSolid(colorDotRect, color);
+
+        // Restore text settings
+        Text.Anchor = anchor;
+        Text.Font = font;
+    }
+}
+
 // TODO: Track with job queue instead
 //
 [HarmonyPatch(typeof(DesignationManager), nameof(DesignationManager.AddDesignation))]
@@ -61,14 +108,14 @@ public static class DesignationManager_AddDesignation_Patch
 {
     public static void Postfix(Designation newDes)
     {
-        (string order, string targetLabel) = DesignationHelpers.GetOrderAndTargetLabel(newDes);
+        // (string order, string targetLabel) = DesignationHelpers.GetOrderAndTargetLabel(newDes);
 
         // bail if its a plan, the AI gets confused and thinks we're building stuff when its just planning.  using string because
         // of mods.  it might not be full-proof but should cover most use-cases.
-        if (targetLabel.ToLowerInvariant().Contains("plan"))
-            return;
+        // if (targetLabel.ToLowerInvariant().Contains("plan"))
+        //     return;
 
-        DesignationQueueManager.EnqueueDesignation(OrderType.Designate, order, targetLabel);
+        // DesignationQueueManager.EnqueueDesignation(OrderType.Designate, order, targetLabel);
     }
 }
 
@@ -80,14 +127,14 @@ public static class Designator_Cancel_Patch
     public static void PrefixForDesignateSingleCell(IntVec3 c)
     {
         //Logger.Message($"track cancel cell at  {c}");
-        DesignationHelpers.TrackCancelCell(c);
+        // DesignationHelpers.TrackCancelCell(c);
     }
 
     [HarmonyPrefix, HarmonyPatch(nameof(Designator_Cancel.DesignateThing))]
     public static void PrefixForDesignateThing(Thing t)
     {
         //Logger.Message($"track cancel thing  {t}");
-        DesignationHelpers.TrackCancelThing(t);
+        // DesignationHelpers.TrackCancelThing(t);
     }
 }
 
@@ -98,19 +145,19 @@ public static class DesignationManager_RemoveDesignation_Patch
     public static void Postfix(Designation des)
     {
         // Checks if the action was cancelled for either a Thing or Cell target, bailing out only if neither is found.
-        bool wasCancelledByPlayer =
-            des.target.Cell != null && DesignationHelpers.IsTrackedCancelCell(des.target.Cell);
+        // bool wasCancelledByPlayer =
+        //     des.target.Cell != null && DesignationHelpers.IsTrackedCancelCell(des.target.Cell);
 
-        if (!wasCancelledByPlayer)
-            return;
+        // if (!wasCancelledByPlayer)
+        //     return;
 
-        (string order, string targetLabel) = DesignationHelpers.GetOrderAndTargetLabel(des);
+        // (string order, string targetLabel) = DesignationHelpers.GetOrderAndTargetLabel(des);
 
-        // Bail if it's a plan to avoid ChatGPT getting confused.
-        if (targetLabel.ToLowerInvariant().Contains("plan"))
-            return;
+        // // Bail if it's a plan to avoid ChatGPT getting confused.
+        // if (targetLabel.ToLowerInvariant().Contains("plan"))
+        //     return;
 
-        DesignationQueueManager.EnqueueDesignation(OrderType.Cancel, order, targetLabel);
+        // DesignationQueueManager.EnqueueDesignation(OrderType.Cancel, order, targetLabel);
     }
 }
 
@@ -123,6 +170,6 @@ public static class TickManager_DoSingleTick_Patch
         var map = Find.CurrentMap;
         if (map == null)
             return;
-        DesignationQueueManager.Update();
+        // DesignationQueueManager.Update();
     }
 }
