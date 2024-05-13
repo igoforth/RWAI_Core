@@ -1,20 +1,20 @@
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Net.NetworkInformation;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using Verse;
 
 namespace AICore;
 
+using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
+using System.Net.NetworkInformation;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+
 // once configured, layout should look like this:
 // root:
 //   Darwin  - ~/Library/Application Support/RimWorld/RWAI/
-//   Windows - %APPDATA%\..\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios\RWAI\
-//   Linux   - $HOME/.config/unity3d/Ludeon Studios/RimWorld/RWAI/
+//   Windows - %USERPROFILE%\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios\RWAI\
+//   Linux   - ~/.config/unity3d/Ludeon Studios/RimWorld by Ludeon Studios/RWAI/
 // files:
 // ./bin/llamafile (win llamafile.com)
 // ./bin/python (win python.com)
@@ -79,6 +79,7 @@ public class BootstrapTool
 
         // compare ".version" file with latest
         var reader = File.OpenText(versionPath);
+        var client = new HttpClient();
         const string releaseUrl = "https://api.github.com/repos/igoforth/RWAILib/releases/latest";
         var newRelease = "";
         var oldRelease = "";
@@ -86,9 +87,9 @@ public class BootstrapTool
         // compare online version
         Tools.SafeAsync(async () =>
         {
-            Task<string> newReleaseT = DownloadString(releaseUrl);
+            string newReleaseT = DownloadString(client, releaseUrl);
             Task<string> oldReleaseT = reader.ReadToEndAsync();
-            await Task.WhenAll(newReleaseT, oldReleaseT);
+            await Task.WhenAll(oldReleaseT);
         });
 
         reader.Close();
@@ -115,12 +116,13 @@ public class BootstrapTool
         return false;
     }
 
-    public static async Task Run()
+    public static void Run()
     {
         const string bootstrapUrl =
             "https://github.com/igoforth/RWAILib/releases/latest/download/Bootstrap.py";
         const string pythonUrl = "https://cosmo.zip/pub/cosmos/bin/python";
         var binPath = Directory.GetParent(pythonPath).FullName;
+        var client = new HttpClient();
 
         LogTool.Message("RWAI has begun bootstrapping.");
 
@@ -129,13 +131,11 @@ public class BootstrapTool
         {
             Directory.CreateDirectory(binPath);
         }
-
         try
         {
             // Create download jobs
-            Task pythonDownload = DownloadFile(pythonUrl, pythonPath);
-            Task<string> scriptDownload = DownloadString(bootstrapUrl);
-            await Task.WhenAll(pythonDownload, scriptDownload);
+            DownloadFile(client, pythonUrl, pythonPath);
+            string scriptContent = DownloadString(client, bootstrapUrl);
 
             // If OS is not Windows, make python executable
             if (platform != PlatformID.Win32NT)
@@ -162,7 +162,6 @@ public class BootstrapTool
             }
 
             // Get the script content
-            string scriptContent = scriptDownload.Result;
             if (string.IsNullOrEmpty(scriptContent))
             {
                 LogTool.Error("Failed to download the bootstrap script.");
@@ -171,7 +170,10 @@ public class BootstrapTool
 
             // Run the bootstrap process
             BootstrapTool bt = new BootstrapTool();
-            await bt.Bootstrap(pythonPath, scriptContent);
+            Tools.SafeAsync(async () =>
+            {
+                await bt.Bootstrap(pythonPath, scriptContent);
+            });
         }
         catch (Exception ex)
         {
@@ -179,61 +181,67 @@ public class BootstrapTool
         }
     }
 
-    public static async Task<Stream> Download(string fileUrl)
+    public static async Task<Stream> Download(HttpClient client, string fileUrl)
     {
-        using (HttpClient client = new HttpClient())
+        // Download the file
+        using (var response = await client.GetAsync(fileUrl))
         {
-            // Download the file
-            using (var response = await client.GetAsync(fileUrl))
-            {
-                response.EnsureSuccessStatusCode();
-                return await response.Content.ReadAsStreamAsync();
-            }
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStreamAsync();
         }
     }
 
-    public static async Task<string> DownloadString(string fileUrl)
+    public static string DownloadString(HttpClient client, string fileUrl)
     {
-        using (Stream stream = await Download(fileUrl))
-        {
-            if (stream == null)
-            {
-                LogTool.Error("Download failed.");
-                return null;
-            }
+        string result = "";
 
-            using (StreamReader reader = new StreamReader(stream))
+        Tools.SafeAsync(async () =>
+        {
+            using (Stream stream = await Download(client, fileUrl))
             {
-                return await reader.ReadToEndAsync();
+                if (stream == null)
+                {
+                    LogTool.Error("Download failed.");
+                }
+
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    result = await reader.ReadToEndAsync();
+                }
             }
-        }
+        });
+        return result;
     }
 
-    public static async Task DownloadFile(string fileUrl, string destinationPath)
+    public static bool DownloadFile(HttpClient client, string fileUrl, string destinationPath)
     {
         // Ensure destinationPath is not directory
         if (Directory.Exists(destinationPath))
         {
             LogTool.Error("Destination path is a directory.");
-            return;
+            return false;
         }
         // Ensure the destination directory exists
         Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
 
-        // Download the file
-        using (Stream stream = await Download(fileUrl))
+        Tools.SafeAsync(async () =>
         {
-            if (stream == null)
+            // Download the file
+            using (Stream stream = await Download(client, fileUrl))
             {
-                LogTool.Error("Download failed.");
-                return;
-            }
+                if (stream == null)
+                {
+                    LogTool.Error("Download failed.");
+                }
 
-            using (FileStream fs = File.Create(destinationPath))
-            {
-                await stream.CopyToAsync(fs);
+                using (FileStream fs = File.Create(destinationPath))
+                {
+                    await stream.CopyToAsync(fs);
+                }
             }
-        }
+        });
+
+        return true;
     }
 
     public async Task Bootstrap(string pythonBin, string scriptContent)

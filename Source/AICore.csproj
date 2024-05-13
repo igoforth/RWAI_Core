@@ -6,7 +6,6 @@
 		<TargetFramework>net472</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<PlatformTarget>x64</PlatformTarget>
-		<OutputPath>..\Assemblies\</OutputPath>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<Version>$(ModVersion)</Version>
@@ -26,7 +25,6 @@
 		<DebugSymbols>false</DebugSymbols>
 		<Optimize>true</Optimize>
 		<DebugType>none</DebugType>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -34,7 +32,6 @@
 		<DefineConstants>RW12;RW13;TRACE;DEBUG</DefineConstants>
 		<Optimize>false</Optimize>
 		<DebugType>portable</DebugType>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
   	<ItemGroup>
@@ -52,81 +49,74 @@
 		</Content>
 	</ItemGroup>
 
-	<ItemGroup>
+	<ItemGroup Label="Protobufs">
 		<Protobuf Include="..\Protos\*.proto" GrpcServices="Client" />
 	</ItemGroup>
 
-  	<ItemGroup>
+  	<ItemGroup Label="Runtime">
+		<PackageReference Include="Google.Protobuf" Version="3.26.1" />
 		<PackageReference Include="Grpc.Net.Client" Version="2.62.0" />
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4085" GeneratePathProperty="true" />
+		<PackageReference Include="Lib.Harmony" Version="2.3.*" ExcludeAssets="runtime" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  	</ItemGroup>
+
+	<ItemGroup Label="Development">
 		<PackageReference Include="Grpc.Tools" Version="2.63.0">
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		  <PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4084" />
-		<PackageReference Include="Lib.Harmony" Version="2.3.3" />
-		<PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
-		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
+		<PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.32">
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		  <PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="Krafs.Publicizer" Version="2.2.1">
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		  <PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 		<PackageReference Include="PolySharp" Version="1.14.1+a7a92a9ddd050275c91c42b711d22cb41c3fbf3d">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="System.Net.Http" Version="4.3.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+    	<Publicize Include="Assembly-CSharp;0Harmony" />
+		<DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute" />
   	</ItemGroup>
 
-  	<Target Name="MyCode" BeforeTargets="UpdateReferences">
-		<PropertyGroup>
-			<AssemblyCSharp>$(PkgKrafs_Rimworld_Ref)\ref\net472\Assembly-CSharp.dll</AssemblyCSharp>
-			<PubliciseOutputPath>$(PkgKrafs_Rimworld_Ref)\ref\net472\</PubliciseOutputPath>
-			<AssemblyCSharp_Publicised>$(PubliciseOutputPath)Assembly-CSharp_publicised.dll</AssemblyCSharp_Publicised>
-		</PropertyGroup>
-		<Message Importance="High" Text="Publicising Rimworld Assembly ..." />
-		<Publicise TargetAssemblyPath="$(AssemblyCSharp)" OutputPath="$(PubliciseOutputPath)" Condition="Exists('$(AssemblyCSharp)')" />
-		<Message Importance="High" Text="Replacing reference to un-publicised assemblies with publicised equivalents ..." />
+	<Target Name="CopyPublicized" AfterTargets="Build">
+		<!-- Create an item list of DLLs found in subdirectories of the specified path -->
 		<ItemGroup>
-			<Reference Include="$(AssemblyCSharp_Publicised)">
-				<SpecificVersion>false</SpecificVersion>
-				<HintPath>$(AssemblyCSharp_Publicised)</HintPath>
-				<Implicit>true</Implicit>
-				<Private>false</Private>
-			</Reference>
+			<CustomAssemblies Include="$(MSBuildProjectDirectory)\obj\Release\PublicizedAssemblies\**\*.dll" />
 		</ItemGroup>
-	</Target>
 
-  	<Target Name="UpdateReferences" AfterTargets="ResolveLockFileReferences">
-		<Message Importance="High" Text="Remove References ..." />
-		<ItemGroup>
-			<Reference Remove="$(PkgKrafs_Rimworld_Ref)\ref\net472\Assembly-CSharp.dll" />
-		</ItemGroup>
-	</Target>
+		<!-- Copy all collected DLLs to the destination folder -->
+		<Copy SourceFiles="@(CustomAssemblies)" DestinationFolder="$(OutputPath)\shared" SkipUnchangedFiles="true" />
+  	</Target>
 
-  	<Target Name="PostBuildAction" AfterTargets="Build">
+	<Target Name="PostBuildAction" AfterTargets="Build">
 		<XmlPoke XmlInputPath="$(MSBuildProjectDirectory)\..\About\About.xml" Query="//ModMetaData/modVersion" Value="$(ModVersion)" />
+		<Message Text="New version: $(ModVersion)" />
 	</Target>
 
-	<Target Name="CopyToRimworld" AfterTargets="PostBuildAction" Condition="'$(RIMWORLD_MOD_DIR)' != ''">
-		<RemoveDir Directories="$(RIMWORLD_MOD_DIR)\$(ModFileName)" />
+	<Target Name="CopyToRimworld" AfterTargets="PostBuildAction" Condition="'$(MOD_PATH)' != ''">
+		<RemoveDir Directories="$(MOD_PATH)\$(ModFileName)" />
 		<ItemGroup>
 			<CopyAbout Include="..\About\**" />
 			<CopyAssemblies Include="..\Assemblies\**" />
-			<CopyDefs Include="..\Defs\**" />
-			<CopyTextures Include="..\Textures\**" />
 			<CopyLicense Include="..\LICENSE" />
 			<CopyReadme Include="..\README.md" />
 		</ItemGroup>
-		<Copy SourceFiles="@(CopyAbout)" DestinationFolder="$(RIMWORLD_MOD_DIR)\$(ModFileName)\About\%(RecursiveDir)" />
-		<Copy SourceFiles="@(CopyAssemblies)" DestinationFolder="$(RIMWORLD_MOD_DIR)\$(ModFileName)\Assemblies\%(RecursiveDir)" />
-		<Copy SourceFiles="@(CopyDefs)" DestinationFolder="$(RIMWORLD_MOD_DIR)\$(ModFileName)\Defs\%(RecursiveDir)" />
-		<Copy SourceFiles="@(CopyTextures)" DestinationFolder="$(RIMWORLD_MOD_DIR)\$(ModFileName)\Textures\%(RecursiveDir)" />
-		<Copy SourceFiles="@(CopyLicense)" DestinationFolder="$(RIMWORLD_MOD_DIR)\$(ModFileName)" />
-		<Copy SourceFiles="@(CopyReadme)" DestinationFolder="$(RIMWORLD_MOD_DIR)\$(ModFileName)" />
+		<Copy SourceFiles="@(CopyAbout)" DestinationFolder="$(MOD_PATH)\$(ModFileName)\About\%(RecursiveDir)" />
+		<Copy SourceFiles="@(CopyAssemblies)" DestinationFolder="$(MOD_PATH)\$(ModFileName)\Assemblies\%(RecursiveDir)" />
+		<Copy SourceFiles="@(CopyLicense)" DestinationFolder="$(MOD_PATH)\$(ModFileName)" />
+		<Copy SourceFiles="@(CopyReadme)" DestinationFolder="$(MOD_PATH)\$(ModFileName)" />
 	</Target>
 
-	<Target Name="ZipMod" AfterTargets="CopyToRimworld" Condition="'$(RIMWORLD_MOD_DIR)' != ''">
-		<ZipDirectory SourceDirectory="$(RIMWORLD_MOD_DIR)\$(ModFileName)" DestinationFile="$(RIMWORLD_MOD_DIR)\$(ModFileName).zip" Overwrite="true" />
+	<Target Name="ZipMod" AfterTargets="CopyToRimworld" Condition="'$(MOD_PATH)' != ''">
+		<ZipDirectory SourceDirectory="$(MOD_PATH)\$(ModFileName)" DestinationFile="$(MOD_PATH)\$(ModFileName).zip" Overwrite="true" />
 	</Target>
 
 </Project>

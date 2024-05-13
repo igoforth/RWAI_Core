@@ -1,13 +1,14 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
 using HarmonyLib;
 using UnityEngine;
 using Verse;
 
 namespace AICore;
+
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 
 [HarmonyPatch(typeof(Current), nameof(Current.Notify_LoadedSceneChanged))]
 [StaticConstructorOnStartup]
@@ -81,17 +82,17 @@ public class AICoreMod : Mod
         var harmony = new Harmony("net.trojan.rimworld.mod.AICore");
         harmony.PatchAll();
 
-        LongEventHandler.ExecuteWhenFinished(() =>
+        LongEventHandler.ExecuteWhenFinished( () =>
         {
             // This performs any necessary setup when the game is loaded
 
+            BootstrapTool.Run();
 
             // Personas.UpdateVoiceInformation();
             // Tools.ReloadGPTModels();
             if (Settings.IsConfigured)
             {
                 // This is the main entry point for the mod
-
                 // Tools.UpdateApiConfigs();
                 // Personas.Add("Player has launched Rimworld and is on the start screen", 0);
             }

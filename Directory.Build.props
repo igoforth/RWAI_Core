@@ -5,7 +5,7 @@
 		<ModFileName>AICore</ModFileName>
 		<Repository>https://github.com/igoforth/RWAI_Core</Repository>
 		<ModVersion>0.0.1.0</ModVersion>
-		<ProjectGuid>{681F62BD-063B-489F-9464-529648BF1E19}</ProjectGuid>
+		<ProjectGuid>{0067BAE0-20B4-4399-9BEE-7A1CC95DAACB}</ProjectGuid>
 	</PropertyGroup>
 
 </Project>
