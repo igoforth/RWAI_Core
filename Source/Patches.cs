@@ -1,7 +1,4 @@
 using HarmonyLib;
-using RimWorld;
-using UnityEngine;
-using Verse;
 
 namespace AICore;
 
@@ -64,7 +61,7 @@ public static class UIRoot_Play_UIRootOnGUI_Patch
     static readonly Color32 startingColor = new(0xFA, 0xA6, 0x1A, 0xFF); // Yellow color for starting status
     static readonly Color32 errorColor = new(0xED, 0x42, 0x45, 0xFF); // Red color for error status
     static readonly Color32 offlineColor = new(0x74, 0x7F, 0x8D, 0xFF); // Grey color for offline status
-    static string serverStatus = "Server Offline"; // Default status
+    static string serverStatus = ServerManager.serverStatus; // Default status
 
     public static void Postfix()
     {
@@ -91,7 +88,7 @@ public static class UIRoot_Play_UIRootOnGUI_Patch
         Widgets.Label(rect, serverStatus);
 
         // Draw status color dot
-        var colorDotRect = new Rect(rect.x - 20, rect.y + (statusHeight / 2) - 5, 10, 10);
+        var colorDotRect = new Rect(rect.x + 20, rect.y + (statusHeight / 2) - 5, 10, 10);
         Color color = serverStatus.Contains("Online") ? onlineColor : offlineColor;
         Widgets.DrawBoxSolid(colorDotRect, color);
 

@@ -1,5 +1,6 @@
+namespace AICore;
+
 using TMPro;
-using UnityEngine;
 
 public class PseudoTerminal : MonoBehaviour
 {

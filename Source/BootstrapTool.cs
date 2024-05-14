@@ -1,55 +1,68 @@
-using System;
-using Verse;
-
 namespace AICore;
 
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using UnityEngine.Networking;
+
+public enum ContentType
+{
+    File,
+    String
+}
 
 // once configured, layout should look like this:
 // root:
-//   Darwin  - ~/Library/Application Support/RimWorld/RWAI/
-//   Windows - %USERPROFILE%\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios\RWAI\
-//   Linux   - ~/.config/unity3d/Ludeon Studios/RimWorld by Ludeon Studios/RWAI/
+//   Darwin  - ~/Library/Application Support/RimWorld/Config/RWAI/
+//   Windows - %USERPROFILE%\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios\Config\RWAI\
+//   Linux   - ~/.config/unity3d/Ludeon Studios/RimWorld by Ludeon Studios/Config/RWAI/
 // files:
 // ./bin/llamafile (win llamafile.com)
 // ./bin/python (win python.com)
 // ./models/Phi-3-mini-128k-instruct.Q4_K_M.gguf
 // ./AIServer.zip
 // ./.version
-public class BootstrapTool
+public sealed class BootstrapTool
 {
-    public static bool DEBUG = true;
-    public static bool isConfigured = checkConfigured();
     public static bool internetAccess = false;
-    public static bool hasServerUpdate = checkServerUpdate();
+    public static bool isConfigured;
+    public static bool hasServerUpdate;
+    private const string releaseString =
+        "https://api.github.com/repos/igoforth/RWAILib/releases/latest";
+    private const string bootstrapString =
+        "https://github.com/igoforth/RWAILib/releases/latest/download/Bootstrap.py";
+    private const string pythonString = "https://cosmo.zip/pub/cosmos/bin/python";
     private static readonly PlatformID platform = Environment.OSVersion.Platform;
-    private static readonly string modConfigPath = Path.Combine(
-        GenFilePaths.ConfigFolderPath,
-        "RWAI"
-    );
-    private static readonly string pythonPath = Path.Combine(
-        modConfigPath,
-        "bin",
-        platform == PlatformID.Win32NT ? "python.com" : "python"
-    );
-
-    private Process bootstrapProcess;
+    private static string modConfigPath;
+    private static string pythonPath;
+    private static string llamaPath;
     private static TaskCompletionSource<bool> eventHandled;
+    private Process bootstrapProcess;
+
+    private BootstrapTool()
+    {
+        modConfigPath = Path.Combine(GenFilePaths.ConfigFolderPath, "RWAI");
+        pythonPath = Path.Combine(
+            modConfigPath,
+            "bin",
+            platform == PlatformID.Win32NT ? "python.com" : "python"
+        );
+        llamaPath = Path.Combine(
+            modConfigPath,
+            "bin",
+            platform == PlatformID.Win32NT ? "llamafile.com" : "llamafile"
+        );
+        isConfigured = checkConfigured();
+        hasServerUpdate = checkServerUpdate();
+    }
 
     private static bool checkConfigured()
     {
         var file_path_list = new[]
         {
-            Path.Combine(
-                modConfigPath,
-                "bin",
-                platform == PlatformID.Win32NT ? "llamafile.com" : "python"
-            ),
+            llamaPath,
             pythonPath,
             Path.Combine(modConfigPath, "models", "Phi-3-mini-128k-instruct.Q4_K_M.gguf"),
             Path.Combine(modConfigPath, "AIServer.zip"),
@@ -73,41 +86,49 @@ public class BootstrapTool
         // check for internet
         internetAccess = checkInternet();
         if (!internetAccess)
-        {
             return false;
-        }
 
         // compare ".version" file with latest
-        var reader = File.OpenText(versionPath);
-        var client = new HttpClient();
-        const string releaseUrl = "https://api.github.com/repos/igoforth/RWAILib/releases/latest";
+        using var reader = File.OpenText(versionPath);
+        var releaseUrl = new Uri(releaseString);
         var newRelease = "";
         var oldRelease = "";
 
         // compare online version
-        Tools.SafeAsync(async () =>
+        try
         {
-            string newReleaseT = DownloadString(client, releaseUrl);
-            Task<string> oldReleaseT = reader.ReadToEndAsync();
-            await Task.WhenAll(oldReleaseT);
-        });
+            Tools.SafeAsync(async () =>
+            {
+                Task<string> newReleaseT = Download(ContentType.String, releaseUrl);
+                Task<string> oldReleaseT = reader.ReadToEndAsync();
+                await Task.WhenAll(newReleaseT, oldReleaseT);
+                newRelease = newReleaseT.Result;
+                oldRelease = oldReleaseT.Result;
+            });
+        }
+        catch (Exception ex)
+        {
+            LogTool.Error(ex.ToString());
+        }
+        finally
+        {
+            reader.Close();
+        }
 
-        reader.Close();
-        dynamic json = JObject.Parse(newRelease);
-        return json.tag_name != oldRelease;
+        JObject json = JObject.Parse(newRelease);
+        string tag_name = (string)json["tag_name"];
+        return tag_name != oldRelease;
     }
 
+    // check for internet access
     public static bool checkInternet()
     {
         try
         {
-            // check for internet access
-            var pingSender = new Ping();
-            PingReply pingReply = pingSender.Send("dns.google");
+            using var pingSender = new Ping();
+            var pingReply = pingSender.Send("dns.google");
             if (pingReply.Status == IPStatus.Success)
-            {
                 return true;
-            }
         }
         catch (PingException)
         {
@@ -118,130 +139,120 @@ public class BootstrapTool
 
     public static void Run()
     {
-        const string bootstrapUrl =
-            "https://github.com/igoforth/RWAILib/releases/latest/download/Bootstrap.py";
-        const string pythonUrl = "https://cosmo.zip/pub/cosmos/bin/python";
+        BootstrapTool bt = new BootstrapTool();
+        var bootstrapUrl = new Uri(bootstrapString);
+        var pythonUrl = new Uri(pythonString);
         var binPath = Directory.GetParent(pythonPath).FullName;
-        var client = new HttpClient();
+        bool pythonDone = false;
+        string scriptContent = "";
 
         LogTool.Message("RWAI has begun bootstrapping.");
 
         // Create the bin directory if it doesn't exist
         if (!Directory.Exists(binPath))
-        {
             Directory.CreateDirectory(binPath);
-        }
+
+        // bootstrap python
         try
         {
-            // Create download jobs
-            DownloadFile(client, pythonUrl, pythonPath);
-            string scriptContent = DownloadString(client, bootstrapUrl);
-
-            // If OS is not Windows, make python executable
-            if (platform != PlatformID.Win32NT)
-            {
-                var chmodPSI = new ProcessStartInfo
-                {
-                    FileName = "chmod",
-                    Arguments = $"+x {pythonPath}",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using (Process chmodProcess = new Process { StartInfo = chmodPSI })
-                {
-                    chmodProcess.Start();
-                    chmodProcess.WaitForExit();
-
-                    if (chmodProcess.ExitCode != 0)
-                    {
-                        LogTool.Error("Failed to set executable permission on Python binary.");
-                        return;
-                    }
-                }
-            }
-
-            // Get the script content
-            if (string.IsNullOrEmpty(scriptContent))
-            {
-                LogTool.Error("Failed to download the bootstrap script.");
-                return;
-            }
-
-            // Run the bootstrap process
-            BootstrapTool bt = new BootstrapTool();
             Tools.SafeAsync(async () =>
             {
-                await bt.Bootstrap(pythonPath, scriptContent);
+                Task<string> pythonDownload = Download(ContentType.File, pythonUrl, pythonPath);
+                Task<string> scriptDownload = Download(ContentType.String, bootstrapUrl);
+                await Task.WhenAll(pythonDownload, scriptDownload);
+                scriptContent = scriptDownload.Result;
+                pythonDone = true;
             });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            LogTool.Error($"An error occurred during download or processing: {ex.Message}");
+            LogTool.Error("HTTP Error when downloading script or Python binary");
+            return;
         }
-    }
 
-    public static async Task<Stream> Download(HttpClient client, string fileUrl)
-    {
-        // Download the file
-        using (var response = await client.GetAsync(fileUrl))
+        // If OS is not Windows, make python executable
+        if (platform != PlatformID.Win32NT)
         {
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStreamAsync();
+            var chmodPSI = new ProcessStartInfo
+            {
+                FileName = "chmod",
+                Arguments = $"+x {pythonPath}",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            // chmod python
+            Tools.SafeAsync(async () =>
+            {
+                using var chmodProcess = new Process { StartInfo = chmodPSI };
+                while (!pythonDone && AICoreMod.Running)
+                    await Task.Delay(200);
+                chmodProcess.Start();
+                chmodProcess.WaitForExit();
+
+                if (chmodProcess.ExitCode != 0)
+                {
+                    LogTool.Error("Failed to set executable permission on Python binary.");
+                    return;
+                }
+            });
         }
-    }
 
-    public static string DownloadString(HttpClient client, string fileUrl)
-    {
-        string result = "";
-
+        // Run the bootstrap process
         Tools.SafeAsync(async () =>
         {
-            using (Stream stream = await Download(client, fileUrl))
-            {
-                if (stream == null)
-                {
-                    LogTool.Error("Download failed.");
-                }
-
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    result = await reader.ReadToEndAsync();
-                }
-            }
+            while (scriptContent == "" && AICoreMod.Running)
+                await Task.Delay(200);
+            await bt.Bootstrap(pythonPath, scriptContent);
         });
-        return result;
     }
 
-    public static bool DownloadFile(HttpClient client, string fileUrl, string destinationPath)
+    private static async Task<string> Download(
+        ContentType content,
+        Uri fileUrl,
+        string destination = null
+    )
     {
-        // Ensure destinationPath is not directory
-        if (Directory.Exists(destinationPath))
+        string filePath = destination;
+        using var request = UnityWebRequest.Get(fileUrl);
+        request.method = "GET";
+
+        switch (content)
         {
-            LogTool.Error("Destination path is a directory.");
-            return false;
+            case ContentType.File:
+#if DEBUG
+                Debug.Assert(destination != null, "Destination cannot be null");
+#endif
+
+                if (File.Exists(destination))
+                    File.Delete(destination);
+                else if (Directory.Exists(destination))
+                    filePath = Path.Combine(destination, Path.GetFileName(fileUrl.LocalPath));
+
+                break;
+            case ContentType.String:
+            default:
+                break;
         }
-        // Ensure the destination directory exists
-        Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
 
-        Tools.SafeAsync(async () =>
+        using DownloadHandler downloadHandler =
+            destination != null ? new DownloadHandlerFile(filePath) : new DownloadHandlerBuffer();
+
+        if (downloadHandler is DownloadHandlerFile fileHandler)
+            fileHandler.removeFileOnAbort = true;
+
+        request.downloadHandler = downloadHandler;
+        var asyncOperation = request.SendWebRequest();
+        while (!asyncOperation.isDone && AICoreMod.Running)
+            await Task.Delay(200);
+
+        if (downloadHandler is DownloadHandlerFile)
+            return default;
+
+        return await Main.Perform(() =>
         {
-            // Download the file
-            using (Stream stream = await Download(client, fileUrl))
-            {
-                if (stream == null)
-                {
-                    LogTool.Error("Download failed.");
-                }
-
-                using (FileStream fs = File.Create(destinationPath))
-                {
-                    await stream.CopyToAsync(fs);
-                }
-            }
+            var result = downloadHandler.text;
+            return result;
         });
-
-        return true;
     }
 
     public async Task Bootstrap(string pythonBin, string scriptContent)
@@ -258,45 +269,33 @@ public class BootstrapTool
             CreateNoWindow = true
         };
 
-        using (bootstrapProcess = new Process { StartInfo = pythonPSI })
+        try
         {
-            try
-            {
-                bootstrapProcess.EnableRaisingEvents = true;
-                bootstrapProcess.Exited += new EventHandler(ProcessExited);
-                bootstrapProcess.Start();
+            bootstrapProcess = new Process { StartInfo = pythonPSI };
+            bootstrapProcess.EnableRaisingEvents = true;
+            bootstrapProcess.Exited += new EventHandler(ProcessExited);
+            bootstrapProcess.Start();
 
-                // Write the multiline script content to the process
-                using (StreamWriter sw = bootstrapProcess.StandardInput)
-                {
-                    sw.WriteLine(scriptContent);
-                }
+            // Write the multiline script content to the process
+            using var sw = bootstrapProcess.StandardInput;
+            sw.WriteLine(scriptContent);
+            sw.Close();
 
-                // Read the output stream first and then wait.
-                bootstrapProcess.BeginOutputReadLine();
-                bootstrapProcess.BeginErrorReadLine();
-                if (DEBUG)
-                {
-                    bootstrapProcess.OutputDataReceived += (sender, args) =>
-                        LogTool.Message(args.Data);
-                    bootstrapProcess.ErrorDataReceived += (sender, args) =>
-                        LogTool.Error(args.Data);
-                }
-                else
-                {
-                    // Redirect output to null
-                    bootstrapProcess.OutputDataReceived += (sender, args) => { };
-                    bootstrapProcess.ErrorDataReceived += (sender, args) => { };
-                }
-            }
-            catch (Exception ex)
-            {
-                LogTool.Error($"Error starting process: {ex}");
-                return;
-            }
-
-            await Task.WhenAny(eventHandled.Task);
+            // Read the output stream first and then wait.
+            bootstrapProcess.BeginOutputReadLine();
+            bootstrapProcess.BeginErrorReadLine();
+#if DEBUG
+            bootstrapProcess.OutputDataReceived += (sender, args) => LogTool.Message(args.Data);
+            bootstrapProcess.ErrorDataReceived += (sender, args) => LogTool.Error(args.Data);
+#endif
         }
+        catch (Exception ex)
+        {
+            LogTool.Error($"Error starting process: {ex}");
+            return;
+        }
+
+        await Task.WhenAny(eventHandled.Task);
     }
 
     // Handle Exited event and display process information.

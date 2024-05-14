@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <!-- ILRepack -->
-	<Target Name="ILRepacker" AfterTargets="Build">
+    <Target Name="ILRepacker" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
         <ItemGroup>
             <InputAssemblies Include="$(OutputPath)\*.dll" />
         </ItemGroup>
@@ -15,7 +15,10 @@
             <InternalizeExclude Include="0Harmony" />
         </ItemGroup>
 
-        <ILRepack Parallel="true" Internalize="true" Wildcards="true" InternalizeExclude="@(InternalizeExclude)" InputAssemblies="@(InputAssemblies)" LibraryPath="@(LibraryPath)" TargetKind="Dll" AllowedDuplicateNamespaces="Google.Protobuf.ByteString" OutputFile="$(OutputPath)..\..\..\Assemblies\$(AssemblyName).dll" />
+        <ILRepack Parallel="true" Internalize="true" Wildcards="true"
+            InternalizeExclude="@(InternalizeExclude)" InputAssemblies="@(InputAssemblies)"
+            LibraryPath="@(LibraryPath)" TargetKind="Dll"
+            OutputFile="$(OutputPath)..\..\..\Assemblies\$(AssemblyName).dll" />
 
     </Target>
     <!-- /ILRepack -->

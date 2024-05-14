@@ -1,7 +1,8 @@
-﻿using System;
+﻿global using System;
+global using RimWorld;
+global using UnityEngine;
+global using Verse;
 using HarmonyLib;
-using UnityEngine;
-using Verse;
 
 namespace AICore;
 
@@ -82,17 +83,16 @@ public class AICoreMod : Mod
         var harmony = new Harmony("net.trojan.rimworld.mod.AICore");
         harmony.PatchAll();
 
-        LongEventHandler.ExecuteWhenFinished( () =>
+        LongEventHandler.ExecuteWhenFinished(() =>
         {
             // This performs any necessary setup when the game is loaded
-
-            BootstrapTool.Run();
 
             // Personas.UpdateVoiceInformation();
             // Tools.ReloadGPTModels();
             if (Settings.IsConfigured)
             {
                 // This is the main entry point for the mod
+                BootstrapTool.Run();
                 // Tools.UpdateApiConfigs();
                 // Personas.Add("Player has launched Rimworld and is on the start screen", 0);
             }

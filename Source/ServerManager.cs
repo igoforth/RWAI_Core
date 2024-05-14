@@ -3,9 +3,6 @@
 // sends gRPC to ai server to get generation
 // updates the server status
 //
-using System.Diagnostics;
-using System.Threading.Tasks;
-
 namespace AICore;
 
 public static class ServerManager

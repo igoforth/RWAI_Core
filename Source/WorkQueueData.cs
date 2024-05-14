@@ -1,6 +1,6 @@
-using System.Collections.Generic;
-
 namespace AICore;
+
+using System.Collections.Generic;
 
 public interface IWorkItemInterface
 {

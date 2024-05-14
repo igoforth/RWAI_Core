@@ -1,9 +1,6 @@
-using System;
-using UnityEngine;
-using Verse;
-using static AICore.Dialog_Help;
-
 namespace AICore;
+
+using static AICore.Dialog_Help;
 
 public static class UX
 {

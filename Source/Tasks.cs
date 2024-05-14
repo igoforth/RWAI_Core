@@ -1,11 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using HarmonyLib;
-using RimWorld;
-using Verse;
 
 namespace AICore;
+
+using System.Collections.Generic;
+using System.Linq;
 
 // updates the Colony Setting, including weather, date, name of colony, etc
 // used to update the record keeper, which in turn is used by the AI as part of game state

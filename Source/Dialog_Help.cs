@@ -1,8 +1,6 @@
-using System.Collections.Generic;
-using UnityEngine;
-using Verse;
-
 namespace AICore;
+
+using System.Collections.Generic;
 
 public class Dialog_Help : Window
 {

@@ -1,6 +1,6 @@
-using System.Collections.Concurrent;
-
 namespace AICore;
+
+using System.Collections.Concurrent;
 
 public static class LogTool
 {
