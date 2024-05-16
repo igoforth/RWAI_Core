@@ -50,7 +50,7 @@
 	</ItemGroup>
 
 	<ItemGroup Label="Runtime">
-		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4090-beta"
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4085"
 			GeneratePathProperty="true" />
 		<PackageReference Include="Lib.Harmony" Version="2.3.3" ExcludeAssets="runtime" />
 		<PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
@@ -59,7 +59,7 @@
 	</ItemGroup>
 
 	<ItemGroup Label="Development">
-		<PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.32">
+		<PackageReference Include="ILRepack" Version="2.0.33">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
@@ -116,12 +116,54 @@
 			SkipUnchangedFiles="true" />
 	</Target>
 
-	<Target Name="PostBuildAction" AfterTargets="Build">
-		<XmlPoke XmlInputPath="$(MSBuildProjectDirectory)\..\About\About.xml" Query="//ModMetaData/modVersion" Value="$(ModVersion)" />
+	<Target Name="CheckConfiguration" BeforeTargets="Build">
+		<Message Text="Configuration: $(Configuration)" Importance="high" />
+	</Target>
+
+	<Target Name="GatherInputs" AfterTargets="CopyPublicized">
+		<PropertyGroup Label="ILRepackItems">
+			<ILRepackExe>$(PkgILRepack)\tools\ILRepack.exe</ILRepackExe>
+			<ILRepackInputPrimary>$(AssemblyName).dll</ILRepackInputPrimary>
+			<ILRepackOutputPath>..\..\..\Assemblies\</ILRepackOutputPath>
+			<ILRepackOutput>$(ILRepackOutputPath)$(AssemblyName).dll</ILRepackOutput>
+		</PropertyGroup>
+		<ItemGroup Label="ILRepackLists">
+			<ILRepackExtra Include="log;wildcards;parallel;target:library" />
+			<ILRepackInput Include="$(OutputPath)\*.dll" />
+			<ILRepackInput Remove="$(OutputPath)$(AssemblyName).dll" />
+			<ILRepackLib Include="$(OutputPath)\shared" />
+		</ItemGroup>
+	</Target>
+
+	<Target Name="Repack"
+		AfterTargets="GatherInputs"
+		Inputs="$(ILRepackExe);@(ILRepackInput);@(ILRepackLib);$(ILRepackOutputPath);$(ILRepackOutput)"
+		Outputs="$(ILRepackOutput)"
+		Condition="'$(Configuration)' == 'Release'">
+		<PropertyGroup Label="ILRepackArguments">
+			<ILRepackExtraArguments>@(ILRepackExtra->'/%(Identity)', ' ')</ILRepackExtraArguments>
+			<ILRepackLibrariesArgument>@(ILRepackLib->'/lib:&quot;%(FullPath)&quot;', ' ')</ILRepackLibrariesArgument>
+			<ILRepackOutArgument>/out:$(ILRepackOutput)</ILRepackOutArgument>
+			<ILRepackInArgument>@(ILRepackInput->'&quot;%(FileName)%(Extension)&quot;', ' ')</ILRepackInArgument>
+		</PropertyGroup>
+		<Exec
+			Command="$(ILRepackExe) $(ILRepackExtraArguments) $(ILRepackLibrariesArgument) $(ILRepackOutArgument) $(ILRepackInputPrimary) $(ILRepackInArgument)"
+			WorkingDirectory="$(OutputPath)"
+			ConsoleToMSBuild="True" />
+		<Copy Condition="Exists('$(ProjectRuntimeConfigFilePath)')"
+			SourceFiles="$(ProjectRuntimeConfigFilePath)"
+			DestinationFiles="$(ILRepackOutputPath)$(ProjectRuntimeConfigFileName)"
+			SkipUnchangedFiles="True" />
+	</Target>
+
+	<Target Name="PostBuildAction" AfterTargets="Repack">
+		<XmlPoke XmlInputPath="$(MSBuildProjectDirectory)\..\About\About.xml"
+			Query="//ModMetaData/modVersion" Value="$(ModVersion)" />
 		<Message Text="New version: $(ModVersion)" />
 	</Target>
 
-	<Target Name="CopyToRimworld" AfterTargets="PostBuildAction" Condition="'$(MOD_PATH)' != ''">
+	<Target Name="CopyToRimWorld" AfterTargets="PostBuildAction"
+		Condition="'$(MOD_PATH)' != ''">
 		<RemoveDir Directories="$(MOD_PATH)\$(ModFileName)" />
 		<ItemGroup>
 			<CopyAbout Include="..\About\**" />
@@ -129,13 +171,16 @@
 			<CopyLicense Include="..\LICENSE" />
 			<CopyReadme Include="..\README.md" />
 		</ItemGroup>
-		<Copy SourceFiles="@(CopyAbout)" DestinationFolder="$(MOD_PATH)\$(ModFileName)\About\%(RecursiveDir)" />
-		<Copy SourceFiles="@(CopyAssemblies)" DestinationFolder="$(MOD_PATH)\$(ModFileName)\Assemblies\%(RecursiveDir)" />
+		<Copy SourceFiles="@(CopyAbout)"
+			DestinationFolder="$(MOD_PATH)\$(ModFileName)\About\%(RecursiveDir)" />
+		<Copy SourceFiles="@(CopyAssemblies)"
+			DestinationFolder="$(MOD_PATH)\$(ModFileName)\Assemblies\%(RecursiveDir)" />
 		<Copy SourceFiles="@(CopyLicense)" DestinationFolder="$(MOD_PATH)\$(ModFileName)" />
 		<Copy SourceFiles="@(CopyReadme)" DestinationFolder="$(MOD_PATH)\$(ModFileName)" />
 	</Target>
 
-	<Target Name="ZipMod" AfterTargets="CopyToRimworld" Condition="'$(MOD_PATH)' != ''">
+	<Target Name="ZipMod" AfterTargets="CopyToRimWorld"
+		Condition="'$(MOD_PATH)' != ''">
 		<ZipDirectory SourceDirectory="$(MOD_PATH)\$(ModFileName)" DestinationFile="$(MOD_PATH)\$(ModFileName).zip" Overwrite="true" />
 	</Target>
 
