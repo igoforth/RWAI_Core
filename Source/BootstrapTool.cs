@@ -284,10 +284,10 @@ public sealed class BootstrapTool
             // Read the output stream first and then wait.
             bootstrapProcess.BeginOutputReadLine();
             bootstrapProcess.BeginErrorReadLine();
-#if DEBUG
+            // #if DEBUG
             bootstrapProcess.OutputDataReceived += (sender, args) => LogTool.Message(args.Data);
             bootstrapProcess.ErrorDataReceived += (sender, args) => LogTool.Error(args.Data);
-#endif
+            // #endif
         }
         catch (Exception ex)
         {

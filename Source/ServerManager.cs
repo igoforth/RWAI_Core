@@ -20,7 +20,7 @@ public static class ServerManager
 
     // private static Process process;
     public static bool serverRunning = false;
-    public static string serverStatus = "AI Server" + ServerStatus.Offline;
+    public static string serverStatus = "AI Server " + ServerStatus.Offline;
 
     // update server status
     public static void UpdateServerStatus(ServerStatus status)

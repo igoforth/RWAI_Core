@@ -66,8 +66,9 @@ public static class UIRoot_Play_UIRootOnGUI_Patch
     public static void Postfix()
     {
         var (sw, sh) = (UI.screenWidth, UI.screenHeight);
-        var statusWidth = 200f;
+        var statusWidth = 150f;
         var statusHeight = 30f;
+        var right_padding = 10f;
         var rect = new Rect(
             sw - statusWidth - 10,
             sh - statusHeight - 10,
@@ -84,11 +85,14 @@ public static class UIRoot_Play_UIRootOnGUI_Patch
         Text.Font = GameFont.Small;
         Text.Anchor = TextAnchor.MiddleRight;
 
+        // Adjust rect for text drawing to include padding
+        var textRect = new Rect(rect.x, rect.y, rect.width - right_padding, rect.height);
+
         // Draw the server status text
-        Widgets.Label(rect, serverStatus);
+        Widgets.Label(textRect, serverStatus);
 
         // Draw status color dot
-        var colorDotRect = new Rect(rect.x + 20, rect.y + (statusHeight / 2) - 5, 10, 10);
+        var colorDotRect = new Rect(rect.x + 15, rect.y + (statusHeight / 2) - 5, 10, 10);
         Color color = serverStatus.Contains("Online") ? onlineColor : offlineColor;
         Widgets.DrawBoxSolid(colorDotRect, color);
 
