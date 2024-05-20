@@ -57,15 +57,20 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
 public static class UIRoot_Play_UIRootOnGUI_Patch
 {
     static readonly Color background = new(0f, 0f, 0f, 0.4f);
-    static ServerStatus serverStatusEnum = ServerManager.serverStatusEnum;
+    static ServerManager.ServerStatus serverStatusEnum = ServerManager.serverStatusEnum;
     static string serverStatus = ServerManager.serverStatus; // Default status
 
     public static void Postfix()
     {
+        serverStatusEnum = ServerManager.serverStatusEnum;
+        serverStatus = ServerManager.serverStatus;
+
         var (sw, sh) = (UI.screenWidth, UI.screenHeight);
         var statusWidth = 150f;
         var statusHeight = 30f;
-        var right_padding = 10f;
+        var iconSize = 11f; // Size of the status icon
+        var iconPadding = 10f; // Padding between icon and text
+
         var rect = new Rect(
             sw - statusWidth - 10,
             sh - statusHeight - 10,
@@ -80,21 +85,31 @@ public static class UIRoot_Play_UIRootOnGUI_Patch
         var anchor = Text.Anchor;
         var font = Text.Font;
         Text.Font = GameFont.Small;
-        Text.Anchor = TextAnchor.MiddleRight;
+        Text.Anchor = TextAnchor.MiddleCenter;
 
-        // Adjust rect for text drawing to include padding
-        var textRect = new Rect(rect.x, rect.y, rect.width - right_padding, rect.height);
-
-        // Draw the server status text
-        Widgets.Label(textRect, serverStatus);
+        // Calculate icon and text positions
+        var iconRect = new Rect(
+            rect.x + iconPadding,
+            rect.y + (rect.height - iconSize) / 2,
+            iconSize,
+            iconSize
+        );
+        var textRect = new Rect(
+            iconRect.xMax + iconPadding,
+            rect.y + 1, // lower just a tiny bit
+            rect.width - iconRect.width - (3 * iconPadding),
+            rect.height
+        );
 
         // Draw the status texture based on the server status
-        var textureRect = new Rect(rect.x + 15, rect.y + (statusHeight / 2) - 6, 11, 11); // Adjust as needed
         Texture2D statusTexture = Graphics.ButtonServerStatus[(int)serverStatusEnum];
         if (statusTexture != null)
         {
-            GUI.DrawTexture(textureRect, statusTexture);
+            GUI.DrawTexture(iconRect, statusTexture);
         }
+
+        // Draw the server status text
+        Widgets.Label(textRect, serverStatus);
 
         // Restore text settings
         Text.Anchor = anchor;

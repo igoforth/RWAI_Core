@@ -3,7 +3,7 @@ namespace AICore;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-public static class ProcessHelper
+public static class ProcessInterruptHelper
 {
     public static void SendSigINT(Process process)
     {

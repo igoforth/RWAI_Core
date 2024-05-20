@@ -72,6 +72,7 @@ public class AICoreMod : Mod
 {
     public static CancellationTokenSource onQuit = new();
     public static AICoreSettings Settings;
+    public static ServerManager Server = ServerManager.Instance;
     public static Mod self;
 
     public AICoreMod(ModContentPack content)
@@ -87,14 +88,19 @@ public class AICoreMod : Mod
         {
             // This performs any necessary setup when the game is loaded
 
+            // this will exit early if:
+            // already configured
+            // user setting
+            // no internet
             BootstrapTool.Run();
-            // Personas.UpdateVoiceInformation();
-            // Tools.ReloadGPTModels();
+
             if (Settings.IsConfigured)
             {
                 // This is the main entry point for the mod
-                // Tools.UpdateApiConfigs();
-                // Personas.Add("Player has launched Rimworld and is on the start screen", 0);
+
+                // this configures server with any runtime information
+                // which doesn't depend on bootstrap status
+                // Server = ServerManager.Instance;
             }
         });
 

@@ -83,7 +83,7 @@ public sealed class BootstrapTool
     }
 
     // compare github api against pinned "./.version"
-    private static async Task checkServerUpdate()
+    private static async void checkServerUpdate()
     {
         bool triggerUpdate = false;
         try
@@ -106,18 +106,16 @@ public sealed class BootstrapTool
 
             // compare ".version" file with latest
             var releaseUrl = new Uri(releaseString);
+            var userAgent = "igoforth/RWAILib";
             using (var reader = File.OpenText(versionPath))
             {
-                Task<string> newReleaseT = Download(ContentType.String, releaseUrl);
+                Task<string> newReleaseT = Download(ContentType.String, releaseUrl, userAgent);
                 Task<string> oldReleaseT = reader.ReadToEndAsync();
-
-                while (AICoreMod.Running)
-                    await Task.WhenAll(newReleaseT, oldReleaseT);
+                await Task.WhenAll(newReleaseT, oldReleaseT);
 
                 newRelease = newReleaseT.Result;
-                LogTool.Message($"New version: {newRelease}");
                 oldRelease = oldReleaseT.Result;
-                LogTool.Message($"Old version: {newRelease}");
+
                 var json = JObject.Parse(newRelease);
                 string tag_name = (string)json["tag_name"];
                 if (tag_name != oldRelease)
@@ -131,6 +129,7 @@ public sealed class BootstrapTool
             triggerUpdate = false;
             LogTool.Error(ex.ToString());
         }
+
         setUpdate:
         if (triggerUpdate)
             shouldUpdate.TrySetResult(true);
@@ -159,58 +158,99 @@ public sealed class BootstrapTool
     {
         BootstrapTool bt = new BootstrapTool();
         shouldUpdate = new TaskCompletionSource<bool>();
+        var updateTask = shouldUpdate.Task;
         bootstrapDone = new TaskCompletionSource<bool>();
+        var bootstrapTask = bootstrapDone.Task;
 
         // Check for updates
         Tools.SafeAsync(async () =>
         {
-            var csu = checkServerUpdate();
-            while (csu.Status == TaskStatus.Running)
+            // this is where checkConfigured is called
+            // player will have option to not check for updates automatically
+
+            // check for updates
+            // setting result is responsibility of callee
+            checkServerUpdate();
+
+            // await finish
+            while (!updateTask.IsCompleted)
             {
                 await Tools.SafeWait(200);
                 if (!AICoreMod.Running)
-                    shouldUpdate.SetCanceled();
+                    shouldUpdate.TrySetCanceled();
             }
         });
 
         // Run bootstrapper
         Tools.SafeAsync(async () =>
         {
-            while (shouldUpdate.Task.Status == TaskStatus.Running)
-                await Tools.SafeWait(200);
-            if (shouldUpdate.Task.IsCanceled || shouldUpdate.Task.IsFaulted)
-                return;
-            if (shouldUpdate.Task.Result == false)
+            // await start
+            await updateTask;
+
+            // do checks
+            if (updateTask.IsCanceled || updateTask.IsFaulted)
             {
-                LogTool.Message($"You are running version {oldRelease}");
+                LogTool.Error("Update process faulted, will not start server.");
+                bootstrapDone.TrySetCanceled();
                 return;
             }
-            var ba = bt.BootstrapAsync();
-            while (ba.Status == TaskStatus.Running)
+            if (!updateTask.Result)
+            {
+                LogTool.Message($"You are running version {oldRelease}");
+                bootstrapDone.TrySetResult(true);
+                return;
+            }
+
+            // no issues, so bootstrap
+            bt.BootstrapAsync();
+
+            // await finish
+            // we will cancel, callee will send sigint
+            while (!bootstrapTask.IsCompleted)
             {
                 await Tools.SafeWait(200);
                 if (!AICoreMod.Running)
-                    bootstrapDone.SetCanceled();
+                    bootstrapDone.TrySetCanceled();
             }
         });
 
         // Do other things
         Tools.SafeAsync(async () =>
         {
-            while (bootstrapDone.Task.Status == TaskStatus.Running)
-                await Tools.SafeWait(200);
-            if (bootstrapDone.Task.IsCanceled || bootstrapDone.Task.IsFaulted)
+            await bootstrapTask;
+
+            // do checks
+            if (bootstrapTask.IsCanceled || bootstrapTask.IsFaulted)
+            {
+                LogTool.Error("Bootstrap process faulted, will not start server.");
                 return;
+            }
+            if (!bootstrapTask.Result)
+            {
+                LogTool.Message("Unexpected safe bootstrap result, will not start server.");
+                return;
+            }
+
+            // this is just for testing
+            // will depend on settings later
+            if (AICoreMod.Running)
+            {
+                LogTool.Message("Starting AI Server!");
+                AICoreMod.Server.Start();
+            }
+            else
+                LogTool.Error("Did AICoreMod.Server fail to instantiate? Server not starting.");
         });
     }
 
     private static async Task<string> Download(
         ContentType content,
         Uri fileUrl,
+        string userAgent = null,
         string destination = null
     )
     {
-        string filePath = destination;
+        string filePath = null;
         using var request = UnityWebRequest.Get(fileUrl);
         request.method = "GET";
 
@@ -232,6 +272,9 @@ public sealed class BootstrapTool
                 break;
         }
 
+        if (filePath == null && destination != null)
+            throw new ArgumentException("filePath cannot be null. Does destination exist?");
+
         using DownloadHandler downloadHandler =
             destination != null ? new DownloadHandlerFile(filePath) : new DownloadHandlerBuffer();
 
@@ -239,6 +282,8 @@ public sealed class BootstrapTool
             fileHandler.removeFileOnAbort = true;
 
         request.downloadHandler = downloadHandler;
+        if (userAgent != null)
+            request.SetRequestHeader("User-Agent", userAgent);
         var asyncOperation = request.SendWebRequest();
         while (!asyncOperation.isDone && AICoreMod.Running)
             await Tools.SafeWait(200);
@@ -256,7 +301,7 @@ public sealed class BootstrapTool
         });
     }
 
-    public async Task BootstrapAsync()
+    public async void BootstrapAsync()
     {
         var bootstrapUrl = new Uri(bootstrapString);
         var pythonUrl = new Uri(pythonString);
@@ -264,7 +309,7 @@ public sealed class BootstrapTool
         string scriptContent = "";
 
         LogTool.Message("RWAI has begun bootstrapping!");
-        ServerManager.UpdateServerStatus(ServerStatus.Busy);
+        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
 
         // Create the bin directory if it doesn't exist
         if (!Directory.Exists(binPath))
@@ -272,13 +317,14 @@ public sealed class BootstrapTool
 
         try
         {
-            Task<string> pythonDownload = Download(ContentType.File, pythonUrl, pythonPath);
+            Task<string> pythonDownload = Download(ContentType.File, pythonUrl, null, pythonPath);
             Task<string> scriptDownload = Download(ContentType.String, bootstrapUrl);
             await Task.WhenAll(pythonDownload, scriptDownload);
             scriptContent = scriptDownload.Result;
         }
         catch (Exception ex)
         {
+            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
             LogTool.Error("HTTP Error when downloading script or Python binary");
             LogTool.Error($"{ex.Message}");
             return;
@@ -301,6 +347,7 @@ public sealed class BootstrapTool
 
             if (chmodProcess.ExitCode != 0)
             {
+                ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
                 LogTool.Error("Failed to set executable permission on Python binary.");
                 return;
             }
@@ -309,7 +356,7 @@ public sealed class BootstrapTool
         var pythonPSI = new ProcessStartInfo
         {
             FileName = shellBin,
-            Arguments = "bin/python -",
+            Arguments = $"{pythonPath} -",
             WorkingDirectory = modPath,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
@@ -359,16 +406,26 @@ public sealed class BootstrapTool
             // Read the output stream first and then wait.
             bootstrapProcess.BeginOutputReadLine();
             bootstrapProcess.BeginErrorReadLine();
-
-            bootstrapProcess.WaitForExit();
         }
         catch (Exception ex)
         {
+            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
             LogTool.Error($"Error starting process: {ex}");
             return;
         }
 
-        await Task.WhenAny(bootstrapDone.Task);
+        while (
+            !bootstrapDone.Task.IsCanceled
+            || !bootstrapDone.Task.IsFaulted
+            || !bootstrapDone.Task.IsCompleted
+        )
+        {
+            await Tools.SafeWait(200);
+            if (bootstrapDone.Task.IsCanceled)
+                ProcessInterruptHelper.SendSigINT(bootstrapProcess);
+            if (bootstrapDone.Task.IsFaulted)
+                LogTool.Error("Unknown error occurred with bootstrap process!");
+        }
     }
 
     // Handle Exited event and display process information.
@@ -382,7 +439,7 @@ public sealed class BootstrapTool
         );
 #endif
         if (bootstrapProcess.ExitCode != 0)
-            ServerManager.UpdateServerStatus(ServerStatus.Offline);
+            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
         bootstrapDone.TrySetResult(true);
     }
 }

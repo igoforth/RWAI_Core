@@ -6,29 +6,59 @@
 namespace AICore;
 
 using System.Diagnostics;
+using System.IO;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public enum ServerStatus
-{
-    Online,
-    Busy,
-    Error,
-    Offline
-}
-
 public class ServerManager : MonoBehaviour
 {
-    public TextMeshProUGUI logTextUI;
-    public ScrollRect scrollRect;
-    private UISink uiSink;
-
-    public static bool serverRunning = false;
+    public static CancellationTokenSource onQuit = new();
+    public static bool Running => onQuit.IsCancellationRequested == false;
     public static ServerStatus serverStatusEnum = ServerStatus.Offline;
     public static string serverStatus = "AI Server " + ServerStatus.Offline;
+    public TextMeshProUGUI logTextUI;
+    public ScrollRect scrollRect;
+    private static readonly PlatformID platform = Environment.OSVersion.Platform;
+    private static readonly string shellBin =
+        platform == PlatformID.Win32NT ? "powershell.exe" : "sh";
+    private static string serverArgs = "bin/python AIServer.pyz";
+    private static string modPath;
+    private static ServerManager instance;
     private Process serverProcess;
+    private UISink uiSink;
+
+    public enum ServerStatus
+    {
+        Online,
+        Busy,
+        Error,
+        Offline
+    }
+
+    private ServerManager()
+    {
+        modPath = Path.Combine(
+            Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(),
+            "RWAI"
+        );
+    }
+
+    // singleton pattern
+    public static ServerManager Instance
+    {
+        get
+        {
+            if (instance == null)
+            {
+                instance = new ServerManager();
+            }
+            return instance;
+        }
+    }
 
     // Update server status
     public static void UpdateServerStatus(ServerStatus status)
@@ -44,27 +74,39 @@ public class ServerManager : MonoBehaviour
         uiSink.Initialize(logTextUI, scrollRect);
 
         // Start the process and capture its output
-        StartProcessAndCaptureOutput("your_external_process.exe", "");
+        StartProcess(shellBin, serverArgs);
     }
 
-    void StartProcessAndCaptureOutput(string fileName, string arguments)
+    public void Stop()
+    {
+        onQuit.Cancel();
+        serverProcess.WaitForExit();
+        uiSink.Dispose();
+    }
+
+    void StartProcess(string shellBin, string shellArgs)
     {
         try
         {
             UpdateServerStatus(ServerStatus.Busy);
 
-            serverProcess = new Process
+            var serverPSI = new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = fileName,
-                    Arguments = arguments,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
+                FileName = shellBin,
+                Arguments = shellArgs,
+                WorkingDirectory = modPath,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                StandardErrorEncoding = Encoding.UTF8,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                UseShellExecute = false,
+                CreateNoWindow = true
             };
+
+            serverProcess = new Process { StartInfo = serverPSI };
+            serverProcess.EnableRaisingEvents = true;
+            serverProcess.Exited += new EventHandler(ProcessExited);
 
             serverProcess.OutputDataReceived += (sender, args) =>
             {
@@ -82,32 +124,47 @@ public class ServerManager : MonoBehaviour
                 }
             };
 
-            serverProcess.Start();
+            UpdateServerStatus(ServerStatus.Online);
+            LogTool.Message("AI Server started!");
         }
         catch (Exception ex)
         {
             LogTool.Error($"Error starting process: {ex}");
-            UpdateServerStatus(ServerStatus.Offline);
+            UpdateServerStatus(ServerStatus.Error);
             return;
         }
-
-        // Begin reading the output asynchronously
-        serverProcess.BeginOutputReadLine();
-        serverProcess.BeginErrorReadLine();
-
-        UpdateServerStatus(ServerStatus.Online);
-        serverRunning = true;
 
         // Run the server process
         Tools.SafeAsync(async () =>
         {
-            while (serverRunning && AICoreMod.Running)
-                await Task.Delay(200);
+            serverProcess.Start();
 
-            ProcessHelper.SendSigINT(serverProcess);
+            // Read the output stream first and then wait.
+            serverProcess.BeginOutputReadLine();
+            serverProcess.BeginErrorReadLine();
+
+            while (Running && AICoreMod.Running)
+                await Tools.SafeWait(200);
+
+            ProcessInterruptHelper.SendSigINT(serverProcess);
             serverProcess.WaitForExit();
             serverProcess.Close();
-            UpdateServerStatus(ServerStatus.Offline);
         });
+    }
+
+    // Handle Exited event and display process information.
+    private void ProcessExited(object sender, EventArgs e)
+    {
+#if DEBUG
+        LogTool.Debug($"Exit time    : {serverProcess.ExitTime}");
+        LogTool.Debug($"Exit code    : {serverProcess.ExitCode}");
+        LogTool.Debug(
+            $"Elapsed time : {Math.Round((serverProcess.ExitTime - serverProcess.StartTime).TotalMilliseconds)}"
+        );
+#endif
+        if (serverProcess.ExitCode != 0)
+            LogTool.Error("AI Server exited with non-zero code!");
+        LogTool.Message("AI Server shutdown.");
+        UpdateServerStatus(ServerStatus.Offline);
     }
 }

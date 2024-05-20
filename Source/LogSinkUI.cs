@@ -13,6 +13,7 @@ public class UISink : IUISink
     private string currentLine = "";
     public string Name => "UISink";
 
+    // singleton pattern
     public static UISink Instance
     {
         get

@@ -10,8 +10,8 @@ using System.Threading.Tasks;
 /// <remarks>This is for dedicated threads only. For long running tasks that don't occur very frequently, use <seealso cref="ThreadPool"/> or <seealso cref="Task"/></remarks>
 public static class ThreadManager
 {
-    public const sbyte MaxThreads = 20;
-    public const byte MaxPooledThreads = 20;
+    public const sbyte MaxThreads = 1;
+    public const byte MaxPooledThreads = 1;
 
     private static int nextId = 0;
 
@@ -35,10 +35,7 @@ public static class ThreadManager
             Log.Error($"Attempting to create more dedicated threads than allowed.");
             return null;
         }
-        DedicatedThread dedicatedThread = new DedicatedThread(
-            nextId,
-            DedicatedThread.ThreadType.Single
-        );
+        var dedicatedThread = new DedicatedThread(nextId, DedicatedThread.ThreadType.Single);
         activeThreads.Add(dedicatedThread);
         threads[nextId] = dedicatedThread;
         FindNextUsableId();
@@ -55,10 +52,7 @@ public static class ThreadManager
         int index = id + MaxThreads;
         if (threads[index] == null)
         {
-            DedicatedThread dedicatedThread = new DedicatedThread(
-                index,
-                DedicatedThread.ThreadType.Shared
-            );
+            var dedicatedThread = new DedicatedThread(index, DedicatedThread.ThreadType.Shared);
             threads[index] = dedicatedThread;
             activeThreads.Add(dedicatedThread);
         }
