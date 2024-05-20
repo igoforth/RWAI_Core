@@ -57,10 +57,7 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
 public static class UIRoot_Play_UIRootOnGUI_Patch
 {
     static readonly Color background = new(0f, 0f, 0f, 0.4f);
-    static readonly Color32 onlineColor = new(0x3B, 0xA5, 0x5C, 0xFF); // Green color for online status
-    static readonly Color32 startingColor = new(0xFA, 0xA6, 0x1A, 0xFF); // Yellow color for starting status
-    static readonly Color32 errorColor = new(0xED, 0x42, 0x45, 0xFF); // Red color for error status
-    static readonly Color32 offlineColor = new(0x74, 0x7F, 0x8D, 0xFF); // Grey color for offline status
+    static ServerStatus serverStatusEnum = ServerManager.serverStatusEnum;
     static string serverStatus = ServerManager.serverStatus; // Default status
 
     public static void Postfix()
@@ -91,10 +88,13 @@ public static class UIRoot_Play_UIRootOnGUI_Patch
         // Draw the server status text
         Widgets.Label(textRect, serverStatus);
 
-        // Draw status color dot
-        var colorDotRect = new Rect(rect.x + 15, rect.y + (statusHeight / 2) - 5, 10, 10);
-        Color color = serverStatus.Contains("Online") ? onlineColor : offlineColor;
-        Widgets.DrawBoxSolid(colorDotRect, color);
+        // Draw the status texture based on the server status
+        var textureRect = new Rect(rect.x + 15, rect.y + (statusHeight / 2) - 6, 11, 11); // Adjust as needed
+        Texture2D statusTexture = Graphics.ButtonServerStatus[(int)serverStatusEnum];
+        if (statusTexture != null)
+        {
+            GUI.DrawTexture(textureRect, statusTexture);
+        }
 
         // Restore text settings
         Text.Anchor = anchor;

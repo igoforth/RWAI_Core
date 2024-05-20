@@ -21,17 +21,36 @@
 		<Product>$(ModName)</Product>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_1.5|AnyCPU'">
+		<DefineConstants>RW15</DefineConstants>
 		<DebugSymbols>false</DebugSymbols>
 		<Optimize>true</Optimize>
 		<DebugType>none</DebugType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_1.4|AnyCPU'">
+		<DefineConstants>RW14</DefineConstants>
+		<DebugSymbols>false</DebugSymbols>
+		<Optimize>true</Optimize>
+		<DebugType>none</DebugType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1.5|AnyCPU'">
+		<DefineConstants>RW15;TRACE;DEBUG</DefineConstants>
 		<DebugSymbols>true</DebugSymbols>
-		<DefineConstants>RW12;RW13;TRACE;DEBUG</DefineConstants>
 		<Optimize>false</Optimize>
 		<DebugType>portable</DebugType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_1.4|AnyCPU'">
+		<DefineConstants>RW14;TRACE;DEBUG</DefineConstants>
+		<DebugSymbols>true</DebugSymbols>
+		<Optimize>false</Optimize>
+		<DebugType>portable</DebugType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -49,12 +68,20 @@
 		</Content>
 	</ItemGroup>
 
+	<!-- <ItemGroup Label="1.5" Condition="'$(Configuration)' == 'Release_1.5' Or '$(Configuration)'
+	== 'Debug_1.5'">
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.*" />
+	</ItemGroup>
+
+	<ItemGroup Label="1.4" Condition="'$(Configuration)' == 'Release_1.4' Or '$(Configuration)' ==
+	'Debug_1.4'">
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.4.*" />
+	</ItemGroup> -->
+
 	<ItemGroup Label="Runtime">
-		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4085" GeneratePathProperty="true" />
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.*" />
 		<PackageReference Include="Lib.Harmony" Version="2.3.3" ExcludeAssets="runtime" />
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
 		<PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="protobuf-net" Version="3.2.30" />
 	</ItemGroup>
 
@@ -75,6 +102,12 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="Newtonsoft.Json">
+			<HintPath>..\Libraries\Newtonsoft.Json.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 	<!-- <ItemGroup>
@@ -103,8 +136,12 @@
 
 	<Target Name="CopyPublicized" AfterTargets="Build">
 		<!-- Create an item list of DLLs found in subdirectories of the specified path -->
-		<ItemGroup>
-			<CustomAssemblies Include="$(MSBuildProjectDirectory)\obj\Release\PublicizedAssemblies\**\*.dll" />
+		<ItemGroup Condition="'$(Configuration)' == 'Release_1.5'">
+			<CustomAssemblies Include="$(MSBuildProjectDirectory)\obj\Release_1.5\PublicizedAssemblies\**\*.dll" />
+		</ItemGroup>
+
+		<ItemGroup Condition="'$(Configuration)' == 'Release_1.4'">
+			<CustomAssemblies Include="$(MSBuildProjectDirectory)\obj\Release_1.4\PublicizedAssemblies\**\*.dll" />
 		</ItemGroup>
 
 		<!-- Copy all collected DLLs to the destination folder -->
@@ -116,10 +153,15 @@
 	</Target>
 
 	<Target Name="GatherInputs" AfterTargets="CopyPublicized">
+		<PropertyGroup Label="ILRepackOutput_1.5" Condition="'$(Configuration)' == 'Release_1.5'">
+			<ILRepackOutputPath>..\..\..\1.5\Assemblies\</ILRepackOutputPath>
+		</PropertyGroup>
+		<PropertyGroup Label="ILRepackOutput_1.4" Condition="'$(Configuration)' == 'Release_1.4'">
+			<ILRepackOutputPath>..\..\..\1.4\Assemblies\</ILRepackOutputPath>
+		</PropertyGroup>
 		<PropertyGroup Label="ILRepackItems">
 			<ILRepackExe>$(PkgILRepack)\tools\ILRepack.exe</ILRepackExe>
 			<ILRepackInputPrimary>$(AssemblyName).dll</ILRepackInputPrimary>
-			<ILRepackOutputPath>..\..\..\Assemblies\</ILRepackOutputPath>
 			<ILRepackOutput>$(ILRepackOutputPath)$(AssemblyName).dll</ILRepackOutput>
 		</PropertyGroup>
 		<ItemGroup Label="ILRepackLists">
@@ -130,7 +172,7 @@
 		</ItemGroup>
 	</Target>
 
-	<Target Name="Repack" AfterTargets="GatherInputs" Inputs="$(ILRepackExe);@(ILRepackInput);@(ILRepackLib);$(ILRepackOutputPath);$(ILRepackOutput)" Outputs="$(ILRepackOutput)" Condition="'$(Configuration)' == 'Release'">
+	<Target Name="Repack" AfterTargets="GatherInputs" Inputs="$(ILRepackExe);@(ILRepackInput);@(ILRepackLib);$(ILRepackOutputPath);$(ILRepackOutput)" Outputs="$(ILRepackOutput)" Condition="'$(Configuration)' == 'Release_1.5' Or '$(Configuration)' == 'Release_1.4'">
 		<PropertyGroup Label="ILRepackArguments">
 			<ILRepackExtraArguments>@(ILRepackExtra->'/%(Identity)', ' ')</ILRepackExtraArguments>
 			<ILRepackLibrariesArgument>@(ILRepackLib->'/lib:"%(FullPath)"', ' ')</ILRepackLibrariesArgument>
@@ -151,11 +193,13 @@
 		<ItemGroup>
 			<CopyAbout Include="..\About\**" />
 			<CopyAssemblies Include="..\Assemblies\**" />
+			<CopyTextures Include="..\Textures\**" />
 			<CopyLicense Include="..\LICENSE" />
 			<CopyReadme Include="..\README.md" />
 		</ItemGroup>
 		<Copy SourceFiles="@(CopyAbout)" DestinationFolder="$(MOD_PATH)\$(ModFileName)\About\%(RecursiveDir)" />
 		<Copy SourceFiles="@(CopyAssemblies)" DestinationFolder="$(MOD_PATH)\$(ModFileName)\Assemblies\%(RecursiveDir)" />
+		<Copy SourceFiles="@(CopyTextures)" DestinationFolder="$(MOD_PATH)\$(ModFileName)\Textures\%(RecursiveDir)" />
 		<Copy SourceFiles="@(CopyLicense)" DestinationFolder="$(MOD_PATH)\$(ModFileName)" />
 		<Copy SourceFiles="@(CopyReadme)" DestinationFolder="$(MOD_PATH)\$(ModFileName)" />
 	</Target>

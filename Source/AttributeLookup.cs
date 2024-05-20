@@ -3,19 +3,12 @@ namespace AICore;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml;
-using Microsoft.Extensions.Logging;
-
-// var loggerFactory = LoggerFactory.Create(builder =>
-// {
-//     builder.AddConsole();
-// });
-// var logger = loggerFactory.CreateLogger<AttributeLookup>();
 
 // var xml = @"<root><5GSID _name='5GSID'><child _name='child'/></5GSID><GUTI _name='GUTI'/></root>";
 // var xmlDoc = new XmlDocument();
 // xmlDoc.LoadXml(xml);
 
-// var attributeLookup = new AttributeLookup(logger);
+// var attributeLookup = new AttributeLookup();
 // var result = attributeLookup.FindValue(xmlDoc.DocumentElement, "GUTI");
 
 // if (result != null)
@@ -30,21 +23,19 @@ using Microsoft.Extensions.Logging;
 
 public class AttributeLookup
 {
-    private readonly ILogger<AttributeLookup> _logger;
     private readonly LinkedList<(string Key, List<int> Path)> _knownPaths;
     private readonly Dictionary<string, LinkedListNode<(string Key, List<int> Path)>> _pathNodes;
 
-    public AttributeLookup(ILogger<AttributeLookup> logger)
+    public AttributeLookup()
     {
-        _logger = logger;
         _knownPaths = new LinkedList<(string Key, List<int> Path)>();
         _pathNodes = new Dictionary<string, LinkedListNode<(string Key, List<int> Path)>>();
 
         // Initialize with known paths
-        AddKnownPath("5GSID", new List<int> { 3, 3 });
-        AddKnownPath("5GSID", new List<int> { 2, 2 });
-        AddKnownPath("5GSID", new List<int> { 3 });
-        AddKnownPath("GUTI", new List<int> { 2 });
+        // AddKnownPath("5GSID", new List<int> { 3, 3 });
+        // AddKnownPath("5GSID", new List<int> { 2, 2 });
+        // AddKnownPath("5GSID", new List<int> { 3 });
+        // AddKnownPath("GUTI", new List<int> { 2 });
     }
 
     private void AddKnownPath(string key, List<int> path)
@@ -69,7 +60,9 @@ public class AttributeLookup
 
     private XmlNode TryKnownPaths(XmlNode msg, string key)
     {
-        _logger.LogDebug($"Trying known paths for {key}");
+#if DEBUG
+        LogTool.Debug($"Trying known paths for {key}");
+#endif
 
         foreach (var (k, path) in _knownPaths)
         {
@@ -78,7 +71,9 @@ public class AttributeLookup
 
             try
             {
-                _logger.LogDebug($"Trying path {string.Join(", ", path)}");
+#if DEBUG
+                LogTool.Debug($"Trying path {string.Join(", ", path)}");
+#endif
                 var value = PathSearch(msg, path);
                 if (Validate(value, k))
                 {
@@ -130,14 +125,20 @@ public class AttributeLookup
     {
         var stopwatch = Stopwatch.StartNew();
         var path = new List<int>();
-        _logger.LogDebug("Looking for {0} in {1}", key, msg.OuterXml);
+#if DEBUG
+        LogTool.Debug($"Looking for {key} in {msg.OuterXml}");
+#endif
         var result = Lookup(msg, key, path);
         if (result != null)
         {
-            _logger.LogDebug("Found {0} at {1}", key, string.Join(", ", path));
+#if DEBUG
+            LogTool.Debug($"Found {key} at {string.Join(", ", path)}");
+#endif
             AddKnownPath(key, path);
         }
-        _logger.LogDebug("Lookup took {0} seconds", stopwatch.Elapsed.TotalSeconds);
+#if DEBUG
+        LogTool.Debug($"Lookup took {stopwatch.Elapsed.TotalSeconds} seconds");
+#endif
         return result;
     }
 

@@ -5,79 +5,109 @@
 //
 namespace AICore;
 
-public static class ServerManager
+using System.Diagnostics;
+using System.Threading.Tasks;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+public enum ServerStatus
 {
-    public enum ServerStatus
-    {
-        Online,
+    Online,
+    Busy,
+    Error,
+    Offline
+}
 
-        Starting,
+public class ServerManager : MonoBehaviour
+{
+    public TextMeshProUGUI logTextUI;
+    public ScrollRect scrollRect;
+    private UISink uiSink;
 
-        Error,
-
-        Offline
-    }
-
-    // private static Process process;
     public static bool serverRunning = false;
+    public static ServerStatus serverStatusEnum = ServerStatus.Offline;
     public static string serverStatus = "AI Server " + ServerStatus.Offline;
+    private Process serverProcess;
 
-    // update server status
+    // Update server status
     public static void UpdateServerStatus(ServerStatus status)
     {
+        serverStatusEnum = status;
         serverStatus = "AI Server " + status.ToString();
+        LogTool.Message(serverStatus, "UISink");
     }
 
-    // static void Start()
-    // {
-    //     StartProcess();
-    // }
+    public void Start()
+    {
+        uiSink = UISink.Instance;
+        uiSink.Initialize(logTextUI, scrollRect);
 
-    // static void StartProcess()
-    // {
-    //     process = new Process();
-    //     process.StartInfo.FileName = "yourprogram.exe";
-    //     process.StartInfo.UseShellExecute = false;
-    //     process.StartInfo.RedirectStandardOutput = true;
-    //     process.StartInfo.RedirectStandardError = true;
-    //     process.StartInfo.CreateNoWindow = true;
-    //     process.Start();
-    //     serverRunning = true;
+        // Start the process and capture its output
+        StartProcessAndCaptureOutput("your_external_process.exe", "");
+    }
 
-    //     // Start reading the output asynchronously
-    //     Task.Run(() => ReadOutputAsync());
-    // }
+    void StartProcessAndCaptureOutput(string fileName, string arguments)
+    {
+        try
+        {
+            UpdateServerStatus(ServerStatus.Busy);
 
-    // public static void ReadOutputAsync()
-    // {
-    //     Tools.SafeAsync(async () =>
-    //     {
-    //         //FileLog.Log($"{persona?.name ?? "null"} ai request: {phrases.Join(p => p.text, "|")}");
-    //         spokenText = await persona.ai.Evaluate(persona, phrases);
-    //         //FileLog.Log($"{persona?.name ?? "null"} ai reponse: {spokenText}");
-    //         if (spokenText == null || spokenText == "")
-    //         {
-    //             doneCallback();
-    //             completed = true;
-    //             return;
-    //         }
-    //         audioClip = await TTS.AudioClipFromAzure(
-    //             persona,
-    //             $"{TTS.APIURL}/v1",
-    //             spokenText,
-    //             errorCallback
-    //         );
-    //         doneCallback();
-    //         completed = true;
-    //     });
-    //     // Asynchronously read the standard output of the spawned process.
-    //     string stdout = await process.StandardOutput.ReadToEndAsync();
-    //     string stderr = await process.StandardError.ReadToEndAsync();
-    // }
+            serverProcess = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
 
-    // static void OnDestroy()
-    // {
-    //     if (!process.HasExited)
-    //         process.Kill();
-    // }
+            serverProcess.OutputDataReceived += (sender, args) =>
+            {
+                if (!string.IsNullOrEmpty(args.Data))
+                {
+                    LogTool.Message(args.Data, "UISink");
+                }
+            };
+
+            serverProcess.ErrorDataReceived += (sender, args) =>
+            {
+                if (!string.IsNullOrEmpty(args.Data))
+                {
+                    LogTool.Error(args.Data, "UISink");
+                }
+            };
+
+            serverProcess.Start();
+        }
+        catch (Exception ex)
+        {
+            LogTool.Error($"Error starting process: {ex}");
+            UpdateServerStatus(ServerStatus.Offline);
+            return;
+        }
+
+        // Begin reading the output asynchronously
+        serverProcess.BeginOutputReadLine();
+        serverProcess.BeginErrorReadLine();
+
+        UpdateServerStatus(ServerStatus.Online);
+        serverRunning = true;
+
+        // Run the server process
+        Tools.SafeAsync(async () =>
+        {
+            while (serverRunning && AICoreMod.Running)
+                await Task.Delay(200);
+
+            ProcessHelper.SendSigINT(serverProcess);
+            serverProcess.WaitForExit();
+            serverProcess.Close();
+            UpdateServerStatus(ServerStatus.Offline);
+        });
+    }
 }
