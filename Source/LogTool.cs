@@ -13,14 +13,14 @@ public static class LogTool
     }
 
     private static readonly ConcurrentQueue<Msg> log = new();
-    private static readonly List<IUISink> sinks = new(); // List of log sinks
+    private static readonly List<ISink> sinks = new(); // List of log sinks
 
-    public static void AddSink(IUISink sink)
+    public static void AddSink(ISink sink)
     {
         sinks.Add(sink);
     }
 
-    public static void RemoveSink(IUISink sink)
+    public static void RemoveSink(ISink sink)
     {
         sinks.Remove(sink);
     }
@@ -125,7 +125,7 @@ public static class LogTool
 }
 
 // Interface for sinks to implement
-public interface IUISink : IDisposable
+public interface ISink : IDisposable
 {
     string Name { get; }
     void Write(string formattedLogMessage, int level);

@@ -3,11 +3,14 @@
 	<PropertyGroup>
 		<RootNamespace>$(ModFileName)</RootNamespace>
 		<AssemblyName>$(ModFileName)</AssemblyName>
-		<TargetFramework>net472</TargetFramework>
+		<TargetFrameworks>net472</TargetFrameworks>
 		<LangVersion>latest</LangVersion>
 		<PlatformTarget>x64</PlatformTarget>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+		<DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
 		<Version>$(ModVersion)</Version>
 		<AssemblyVersion>$(ModVersion)</AssemblyVersion>
 		<FileVersion>$(ModVersion)</FileVersion>
@@ -81,12 +84,13 @@
 	<ItemGroup Label="Runtime">
 		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.*" />
 		<PackageReference Include="Lib.Harmony" Version="2.3.3" ExcludeAssets="runtime" />
-		<PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
+		<PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
 		<PackageReference Include="protobuf-net" Version="3.2.30" />
+		<PackageReference Include="protobuf-net.GrpcLite" Version="0.1.13" />
 	</ItemGroup>
 
 	<ItemGroup Label="Development">
-		<PackageReference Include="ILRepack" Version="2.0.33">
+		<PackageReference Include="ILRepack" Version="2.0.33" GeneratePathProperty="true">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
@@ -94,11 +98,12 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
+		<PackageReference Include="PolySharp"
+			Version="1.14.1+a7a92a9ddd050275c91c42b711d22cb41c3fbf3d">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="PolySharp" Version="1.14.1+a7a92a9ddd050275c91c42b711d22cb41c3fbf3d">
+		<PackageReference Include="protobuf-net.BuildTools" Version="3.2.33">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
@@ -108,7 +113,16 @@
 		<Reference Include="Newtonsoft.Json">
 			<HintPath>..\Libraries\Newtonsoft.Json.dll</HintPath>
 		</Reference>
+		<Reference Include="netstandard">
+			<Private>true</Private>
+		</Reference>
 	</ItemGroup>
+
+	<!-- <ItemGroup Label="Patches">
+		<None Update="App.config">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup> -->
 
 	<!-- <ItemGroup>
 		<ProjectReference
@@ -125,8 +139,12 @@
 		</PackageReference>
 	</ItemGroup> -->
 
+	<!-- <ItemGroup Label="Protobufs">
+		<Protobuf Include="..\Protos\*.proto" GrpcServices="Client" />
+	</ItemGroup> -->
+
 	<ItemGroup Label="Protobufs">
-		<Protobuf Include="..\Protos\*.proto" GrpcServices="None" />
+		<AdditionalFiles Include="..\Protos\*.proto" Services="Client" LangVersion="$(LangVersion)" />
 	</ItemGroup>
 
 	<ItemGroup>

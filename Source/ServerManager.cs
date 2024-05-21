@@ -9,10 +9,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using TMPro;
-using UnityEngine;
-using UnityEngine.UI;
 
 public class ServerManager : MonoBehaviour
 {
@@ -20,8 +16,6 @@ public class ServerManager : MonoBehaviour
     public static bool Running => onQuit.IsCancellationRequested == false;
     public static ServerStatus serverStatusEnum = ServerStatus.Offline;
     public static string serverStatus = "AI Server " + ServerStatus.Offline;
-    public TextMeshProUGUI logTextUI;
-    public ScrollRect scrollRect;
     private static readonly PlatformID platform = Environment.OSVersion.Platform;
     private static readonly string shellBin =
         platform == PlatformID.Win32NT ? "powershell.exe" : "sh";
@@ -29,7 +23,8 @@ public class ServerManager : MonoBehaviour
     private static string modPath;
     private static ServerManager instance;
     private Process serverProcess;
-    private UISink uiSink;
+
+    // private FileSink logSink;
 
     public enum ServerStatus
     {
@@ -65,13 +60,12 @@ public class ServerManager : MonoBehaviour
     {
         serverStatusEnum = status;
         serverStatus = "AI Server " + status.ToString();
-        LogTool.Message(serverStatus, "UISink");
+        LogTool.Message(serverStatus, "ServerSink");
     }
 
     public void Start()
     {
-        uiSink = UISink.Instance;
-        uiSink.Initialize(logTextUI, scrollRect);
+        // logSink = FileSink.Instance;
 
         // Start the process and capture its output
         StartProcess(shellBin, serverArgs);
@@ -81,7 +75,7 @@ public class ServerManager : MonoBehaviour
     {
         onQuit.Cancel();
         serverProcess.WaitForExit();
-        uiSink.Dispose();
+        // logSink.Dispose();
     }
 
     void StartProcess(string shellBin, string shellArgs)
@@ -112,7 +106,8 @@ public class ServerManager : MonoBehaviour
             {
                 if (!string.IsNullOrEmpty(args.Data))
                 {
-                    LogTool.Message(args.Data, "UISink");
+                    // LogTool.Message(args.Data, "ServerSink");
+                    LogTool.Message(args.Data);
                 }
             };
 
@@ -120,12 +115,13 @@ public class ServerManager : MonoBehaviour
             {
                 if (!string.IsNullOrEmpty(args.Data))
                 {
-                    LogTool.Error(args.Data, "UISink");
+                    // LogTool.Error(args.Data, "ServerSink");
+                    LogTool.Message(args.Data);
                 }
             };
 
             UpdateServerStatus(ServerStatus.Online);
-            LogTool.Message("AI Server started!");
+            LogTool.Message("AI Server started! OMG it actually started, whattttttt");
         }
         catch (Exception ex)
         {

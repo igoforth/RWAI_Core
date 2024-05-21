@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine.UI;
 
-public class UISink : IUISink
+public class UISink : ISink
 {
     private static UISink instance;
     private List<string> logEntries = new List<string>();

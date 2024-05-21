@@ -51,6 +51,6 @@ public static class UpdateColonySetting
             + $"Area: {biomeName}, {biomeDescription}";
         // Personas.Add(message, 1);
         // RecordKeeper.ColonySetting = message;
-        //Logger.Message($"RecordKeeper.ColonySetting: {RecordKeeper.ColonySetting}");
+        // Logger.Message($"RecordKeeper.ColonySetting: {RecordKeeper.ColonySetting}");
     }
 }
