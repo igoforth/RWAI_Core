@@ -23,6 +23,7 @@ public class ServerManager : MonoBehaviour
     private static string modPath;
     private static ServerManager instance;
     private Process serverProcess;
+    private static readonly object lockObject = new();
 
     // private FileSink logSink;
 
@@ -55,27 +56,41 @@ public class ServerManager : MonoBehaviour
         }
     }
 
+    public void Start()
+    {
+        lock (lockObject)
+        {
+            if (Running && serverStatusEnum == ServerStatus.Online)
+                return; // Avoid starting if already running
+
+            // logSink = FileSink.Instance;
+            StartProcess(shellBin, serverArgs);
+        }
+    }
+
+    public void Stop()
+    {
+        lock (lockObject)
+        {
+            if (!Running || serverStatusEnum == ServerStatus.Offline)
+                return; // Avoid stopping if not running
+
+            onQuit.Cancel();
+            if (serverProcess != null && !serverProcess.HasExited)
+            {
+                serverProcess.WaitForExit();
+                serverProcess.Close();
+            }
+            // logSink.Dispose();
+        }
+    }
+
     // Update server status
     public static void UpdateServerStatus(ServerStatus status)
     {
         serverStatusEnum = status;
         serverStatus = "AI Server " + status.ToString();
         LogTool.Message(serverStatus, "ServerSink");
-    }
-
-    public void Start()
-    {
-        // logSink = FileSink.Instance;
-
-        // Start the process and capture its output
-        StartProcess(shellBin, serverArgs);
-    }
-
-    public void Stop()
-    {
-        onQuit.Cancel();
-        serverProcess.WaitForExit();
-        // logSink.Dispose();
     }
 
     void StartProcess(string shellBin, string shellArgs)

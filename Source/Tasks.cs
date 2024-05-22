@@ -54,3 +54,16 @@ public static class UpdateColonySetting
         // Logger.Message($"RecordKeeper.ColonySetting: {RecordKeeper.ColonySetting}");
     }
 }
+
+// updates the ServerStatus
+//
+public static class UpdateServerStatus
+{
+    public static ServerManager.ServerStatus serverStatusEnum = ServerManager.serverStatusEnum;
+    public static string serverStatus = ServerManager.serverStatus;
+    public static void Task()
+    {
+        serverStatusEnum = ServerManager.serverStatusEnum;
+        serverStatus = ServerManager.serverStatus;
+    }
+}
