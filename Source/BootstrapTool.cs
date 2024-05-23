@@ -71,6 +71,7 @@ public sealed class BootstrapTool
         {
             llamaPath,
             pythonPath,
+            // TODO: Support multiple models
             Path.Combine(modPath, "models", "Phi-3-mini-128k-instruct.Q4_K_M.gguf"),
             Path.Combine(modPath, "AIServer.pyz"),
             Path.Combine(modPath, ".version")
@@ -83,7 +84,7 @@ public sealed class BootstrapTool
     }
 
     // compare github api against pinned "./.version"
-    private static async void checkServerUpdate()
+    private async void checkServerUpdate()
     {
         bool triggerUpdate = false;
         try
@@ -170,7 +171,7 @@ public sealed class BootstrapTool
 
             // check for updates
             // setting result is responsibility of callee
-            checkServerUpdate();
+            bt.checkServerUpdate();
 
             // await finish
             while (!updateTask.IsCompleted)
@@ -206,7 +207,9 @@ public sealed class BootstrapTool
 
             // await finish
             // we will cancel, callee will send sigint
-            while (!bootstrapTask.IsCompleted)
+            while (
+                !bootstrapTask.IsCanceled && !bootstrapTask.IsFaulted && !bootstrapTask.IsCompleted
+            )
             {
                 await Tools.SafeWait(200);
                 if (!AICoreMod.Running)
@@ -261,13 +264,14 @@ public sealed class BootstrapTool
                 Debug.Assert(destination != null, "Destination cannot be null");
 #endif
 
-                if (File.Exists(destination))
+                if (Directory.Exists(destination))
+                    filePath = Path.Combine(destination, Path.GetFileName(fileUrl.LocalPath));
+                else
                 {
-                    File.Delete(destination);
+                    if (File.Exists(destination))
+                        File.Delete(destination);
                     filePath = destination;
                 }
-                else if (Directory.Exists(destination))
-                    filePath = Path.Combine(destination, Path.GetFileName(fileUrl.LocalPath));
 
                 break;
             case ContentType.String:
@@ -275,7 +279,7 @@ public sealed class BootstrapTool
                 break;
         }
 
-        if (filePath == null && destination == null)
+        if (filePath == null && destination != null)
             throw new ArgumentException("filePath cannot be null. Does destination exist?");
 
         using DownloadHandler downloadHandler =
@@ -359,7 +363,7 @@ public sealed class BootstrapTool
         var pythonPSI = new ProcessStartInfo
         {
             FileName = shellBin,
-            Arguments = $"{pythonPath} -",
+            Arguments = "bin/python -",
             WorkingDirectory = modPath,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
@@ -409,25 +413,23 @@ public sealed class BootstrapTool
             // Read the output stream first and then wait.
             bootstrapProcess.BeginOutputReadLine();
             bootstrapProcess.BeginErrorReadLine();
+
+            bootstrapProcess.WaitForExit();
         }
         catch (Exception ex)
         {
-            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
             LogTool.Error($"Error starting process: {ex}");
+            bootstrapDone.TrySetException(ex);
             return;
         }
 
-        while (
-            !bootstrapDone.Task.IsCanceled
-            || !bootstrapDone.Task.IsFaulted
-            || !bootstrapDone.Task.IsCompleted
-        )
+        if (bootstrapDone.Task.IsFaulted)
         {
-            await Tools.SafeWait(200);
-            if (bootstrapDone.Task.IsCanceled)
-                ProcessInterruptHelper.SendSigINT(bootstrapProcess);
-            if (bootstrapDone.Task.IsFaulted)
-                LogTool.Error("Unknown error occurred with bootstrap process!");
+            LogTool.Error("Unknown error occurred with bootstrap process!");
+        }
+        else if (bootstrapDone.Task.IsCanceled)
+        {
+            ProcessInterruptHelper.SendSigINT(bootstrapProcess);
         }
     }
 
@@ -442,7 +444,11 @@ public sealed class BootstrapTool
         );
 #endif
         if (bootstrapProcess.ExitCode != 0)
+        {
             ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
-        bootstrapDone.TrySetResult(true);
+            bootstrapDone.TrySetResult(false);
+        }
+        else
+            bootstrapDone.TrySetResult(true);
     }
 }
