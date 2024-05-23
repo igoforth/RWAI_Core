@@ -262,7 +262,10 @@ public sealed class BootstrapTool
 #endif
 
                 if (File.Exists(destination))
+                {
                     File.Delete(destination);
+                    filePath = destination;
+                }
                 else if (Directory.Exists(destination))
                     filePath = Path.Combine(destination, Path.GetFileName(fileUrl.LocalPath));
 
@@ -272,7 +275,7 @@ public sealed class BootstrapTool
                 break;
         }
 
-        if (filePath == null && destination != null)
+        if (filePath == null && destination == null)
             throw new ArgumentException("filePath cannot be null. Does destination exist?");
 
         using DownloadHandler downloadHandler =
