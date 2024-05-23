@@ -122,16 +122,12 @@
             SkipUnchangedFiles="true" />
     </Target>
 
+    <!-- Target to check configuration -->
     <Target Name="CheckConfiguration" BeforeTargets="Build">
         <PropertyGroup>
-            <!-- Get the full project file name -->
-            <ProjectFileName>$(MSBuildProjectFile)</ProjectFileName>
-
-            <!-- Extract the project name by removing the .csproj extension -->
-            <RimWorldVersion Condition="$(ProjectFileName.EndsWith('.csproj'))">
-                $(ProjectFileName.Substring(0, $(ProjectFileName.Length - 7)))
-            </RimWorldVersion>
+            <RimWorldVersion>$(MSBuildProjectName)</RimWorldVersion>
         </PropertyGroup>
+
         <Message Text="RimWorld version: $(RimWorldVersion)" Importance="high" />
         <Message Text="Configuration: $(Configuration)" Importance="high" />
     </Target>

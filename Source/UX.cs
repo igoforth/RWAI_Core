@@ -1,6 +1,6 @@
 namespace AICore;
 
-using static AICore.Dialog_Help;
+// using static AICore.Dialog_Help;
 
 public static class UX
 {
@@ -48,43 +48,43 @@ public static class UX
             list.Gap(gap);
     }
 
-    public static void TextField(
-        this Listing_Standard list,
-        ref string text,
-        string label = null,
-        bool isPassword = false,
-        Action resetCallback = null,
-        HelpType helpType = default,
-        DialogSize dialogSize = DialogSize.Large
-    )
-    {
-        var rect = list.GetRect(20f);
-        if (label != null)
-        {
-            var anchor = Text.Anchor;
-            var font = Text.Font;
-            Text.Font = GameFont.Tiny;
-            Text.Anchor = TextAnchor.UpperLeft;
-            Widgets.Label(rect, label);
-            Text.Anchor = anchor;
-            Text.Font = font;
+    // public static void TextField(
+    //     this Listing_Standard list,
+    //     ref string text,
+    //     string label = null,
+    //     bool isPassword = false,
+    //     Action resetCallback = null,
+    //     HelpType helpType = default,
+    //     DialogSize dialogSize = DialogSize.Large
+    // )
+    // {
+    //     var rect = list.GetRect(20f);
+    //     if (label != null)
+    //     {
+    //         var anchor = Text.Anchor;
+    //         var font = Text.Font;
+    //         Text.Font = GameFont.Tiny;
+    //         Text.Anchor = TextAnchor.UpperLeft;
+    //         Widgets.Label(rect, label);
+    //         Text.Anchor = anchor;
+    //         Text.Font = font;
 
-            if (Widgets.ButtonText(rect.RightPartPixels(24), "?"))
-                Dialog_Help.Show(helpType, dialogSize);
-        }
-        if (isPassword && text != "")
-        {
-            if (list.ButtonText("Clear"))
-                Find.WindowStack.Add(
-                    Dialog_MessageBox.CreateConfirmation(
-                        "Do you want to reset the key?",
-                        resetCallback
-                    )
-                );
-        }
-        else
-            text = list.TextEntry(text);
-    }
+    //         if (Widgets.ButtonText(rect.RightPartPixels(24), "?"))
+    //             Dialog_Help.Show(helpType, dialogSize);
+    //     }
+    //     if (isPassword && text != "")
+    //     {
+    //         if (list.ButtonText("Clear"))
+    //             Find.WindowStack.Add(
+    //                 Dialog_MessageBox.CreateConfirmation(
+    //                     "Do you want to reset the key?",
+    //                     resetCallback
+    //                 )
+    //             );
+    //     }
+    //     else
+    //         text = list.TextEntry(text);
+    // }
 
     public static void Slider(
         this Listing_Standard list,
