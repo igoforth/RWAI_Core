@@ -12,8 +12,8 @@
   </loadAfter>
   <modDependencies>
     <li>
-      <packageId>trojan.aicore</packageId>
-      <displayName>AI Core</displayName>
+      <packageId>brrainz.harmony</packageId>
+      <displayName>Harmony</displayName>
       <steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl>
       <downloadUrl>https://github.com/pardeike/HarmonyRimWorld/releases/latest</downloadUrl>
     </li>
