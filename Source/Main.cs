@@ -8,6 +8,7 @@ namespace AICore;
 
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Configuration;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -80,6 +81,13 @@ public class AICoreMod : Mod
     {
         self = this;
         Settings = GetSettings<AICoreSettings>();
+
+        // Force a reload of the runtime assembly binding settings
+        // idk if it works but its something to experiment with
+        ConfigurationManager.RefreshSection("runtime");
+
+        // Could be used someday if I can get it working?
+        // TypeResolver.Initialize();
 
         var harmony = new Harmony("net.trojan.rimworld.mod.AICore");
         harmony.PatchAll();

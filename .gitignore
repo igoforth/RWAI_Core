@@ -395,6 +395,12 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+# Project Specific
+Libraries/
+
+# Protobuf specific
+Protos/google/
+
 # RimWorld specific
 **/Assemblies/
 1.5/
