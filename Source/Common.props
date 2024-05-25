@@ -41,6 +41,8 @@
     <ItemGroup Label="Runtime">
         <PackageReference Include="Google.Protobuf" Version="3.27.0" />
         <PackageReference Include="Grpc.Core" Version="2.46.6" />
+        <PackageReference Include="Contrib.Grpc.Core.M1" Version="2.46.6"
+            GeneratePathProperty="true" />
         <PackageReference Include="Lib.Harmony" Version="2.3.3" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
     </ItemGroup>
@@ -143,18 +145,29 @@
         Condition="'$(Configuration)' == 'Release'">
         <PropertyGroup>
             <!-- Define the native libraries path -->
+            <M1InputPath>$(PkgContrib_Grpc_Core_M1)\runtimes\osx-arm64\native\</M1InputPath>
             <LibOutputPath>..\Libraries\</LibOutputPath>
         </PropertyGroup>
 
         <ItemGroup>
             <!-- Define the items to be moved -->
+            <ArmItems Include="libgrpc_csharp_ext.arm64.dylib" />
             <NativeItems
                 Include="grpc_csharp_ext.x64.dll;grpc_csharp_ext.x86.dll;libgrpc_csharp_ext.x64.dylib;libgrpc_csharp_ext.x64.so" />
         </ItemGroup>
 
-        <!-- Move Items from OutputPath to LibOutputPath -->
+        <!-- Ensure the output directory exists -->
+        <MakeDir Directories="$(LibOutputPath)" Condition="!Exists('$(LibOutputPath)')" />
+
+        <!-- Copy ARM-specific item to LibOutputPath -->
+        <Copy SourceFiles="@(ArmItems -> '$(M1InputPath)%(Filename)%(Extension)')"
+            DestinationFolder="$(LibOutputPath)" />
+
+        <!-- Copy Native items to LibOutputPath -->
         <Copy SourceFiles="@(NativeItems -> '$(OutputPath)%(Filename)%(Extension)')"
             DestinationFolder="$(LibOutputPath)" />
+
+        <!-- Delete Native items from OutputPath after copying -->
         <Delete Files="@(NativeItems -> '$(OutputPath)%(Filename)%(Extension)')" />
     </Target>
 

@@ -1,6 +1,8 @@
 namespace AICore;
 
-using System.Collections.Generic;
+using System;
+using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
 
@@ -39,42 +41,68 @@ using Grpc.Core;
 
 public class JobClient
 {
-    private const string target = "127.0.0.1:50051";
-    private static readonly Stack<JobRequest> _workItemStack = new Stack<JobRequest>();
     private JobManager.JobManagerClient _client;
     private static Channel _channel;
+    private static readonly ConcurrentBag<JobTask> _taskList = new ConcurrentBag<JobTask>();
+    private static readonly Lazy<JobClient> _instance = new Lazy<JobClient>(() => new JobClient());
 
-    public void Start()
+    private JobClient() { }
+
+    public static JobClient Instance => _instance.Value;
+
+    public void Start(string ip, int port)
     {
-        _channel = new Channel(target, ChannelCredentials.Insecure);
+        _channel = new Channel($"{ip}:{port}", ChannelCredentials.Insecure);
         _client = new JobManager.JobManagerClient(_channel);
     }
 
-    public static void AddJob(JobRequest jobRequest)
+    public void AddJob(JobRequest jobRequest, Action<JobResponse> callback)
     {
-        _workItemStack.Push(jobRequest);
+        try
+        {
+            var jobCall = _client.JobServiceAsync(jobRequest);
+            var jobTask = new JobTask(jobCall, callback);
+            _taskList.Add(jobTask);
+        }
+        catch (Exception ex)
+        {
+            LogTool.Error($"Error adding job: {ex.Message}");
+        }
     }
 
     public async Task ProcessJobsAsync()
     {
-        while (_workItemStack.Count > 0)
+        while (!_taskList.IsEmpty)
         {
-            var jobRequest = _workItemStack.Pop();
-            var jobResponse = await SendJobAsync(jobRequest);
-            HandleResponse(jobResponse);
+            var jobTasks = _taskList.ToArray();
+            var completedTask = await Task.WhenAny(jobTasks.Select(t => t.AsyncCall.ResponseAsync));
+            var completedJobTask = jobTasks.First(t => t.AsyncCall.ResponseAsync == completedTask);
+
+            try
+            {
+                var jobResponse = await completedJobTask.AsyncCall.ResponseAsync;
+                completedJobTask.Callback(jobResponse);
+            }
+            catch (Exception ex)
+            {
+                LogTool.Error($"Error processing job: {ex.Message}");
+            }
+            finally
+            {
+                _taskList.TryTake(out var _); // Remove the completed task
+            }
         }
     }
+}
 
-    private static void HandleResponse(JobResponse response)
-    {
-        LogTool.Message(
-            $"Job ID: {response.JobId}, Job Type: {response.JobType}, Duration: {response.Duration}"
-        );
-        // Process the response payload as needed
-    }
+public class JobTask
+{
+    public AsyncUnaryCall<JobResponse> AsyncCall { get; }
+    public Action<JobResponse> Callback { get; }
 
-    private async Task<JobResponse> SendJobAsync(JobRequest value)
+    public JobTask(AsyncUnaryCall<JobResponse> asyncCall, Action<JobResponse> callback)
     {
-        return await _client.JobServiceAsync(value);
+        AsyncCall = asyncCall;
+        Callback = callback;
     }
 }

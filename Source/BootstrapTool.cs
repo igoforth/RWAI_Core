@@ -1,8 +1,11 @@
 namespace AICore;
 
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.NetworkInformation;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -34,11 +37,11 @@ public sealed class BootstrapTool
     private const string bootstrapString =
         "https://github.com/igoforth/RWAILib/releases/latest/download/Bootstrap.py";
     private const string pythonString = "https://cosmo.zip/pub/cosmos/bin/python";
-    private static readonly PlatformID platform = Environment.OSVersion.Platform;
-    private static readonly string shellBin =
-        platform == PlatformID.Win32NT ? "powershell.exe" : "sh";
     private static string oldRelease = "_";
     private static string newRelease = "_";
+    private static OSPlatform platform;
+    private static Architecture arch;
+    private static string shellBin;
     private static string modPath;
     private static string pythonPath;
     private static string llamaPath;
@@ -48,6 +51,8 @@ public sealed class BootstrapTool
 
     private BootstrapTool()
     {
+        getSystemInfo();
+        shellBin = platform == OSPlatform.Windows ? "powershell.exe" : "sh";
         modPath = Path.Combine(
             Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(),
             "RWAI"
@@ -55,24 +60,38 @@ public sealed class BootstrapTool
         pythonPath = Path.Combine(
             modPath,
             "bin",
-            platform == PlatformID.Win32NT ? "python.com" : "python"
+            platform == OSPlatform.Windows ? "python.com" : "python"
         );
         llamaPath = Path.Combine(
             modPath,
             "bin",
-            platform == PlatformID.Win32NT ? "llamafile.com" : "llamafile"
+            platform == OSPlatform.Windows ? "llamafile.com" : "llamafile"
         );
         isConfigured = checkConfigured();
+        setGrpcOverrideLocation();
     }
 
     private static bool checkConfigured()
     {
+        var directory_path_list = new[]
+        {
+            Path.Combine(modPath, "bin"),
+            Path.Combine(modPath, "models")
+        };
+
+        foreach (var file_path in directory_path_list)
+            if (!Directory.Exists(file_path))
+                return false;
+
+        // TODO: do something smarter to detect models available
+        var files = Directory.GetFiles(Path.Combine(modPath, "models"));
+        if (files.Length == 0)
+            return false;
+
         var file_path_list = new[]
         {
             llamaPath,
             pythonPath,
-            // TODO: Support multiple models
-            Path.Combine(modPath, "models", "Phi-3-mini-128k-instruct.Q4_K_M.gguf"),
             Path.Combine(modPath, "AIServer.pyz"),
             Path.Combine(modPath, ".version")
         };
@@ -80,6 +99,7 @@ public sealed class BootstrapTool
         foreach (var file_path in file_path_list)
             if (!File.Exists(file_path))
                 return false;
+
         return true;
     }
 
@@ -153,6 +173,48 @@ public sealed class BootstrapTool
             return false;
         }
         return false;
+    }
+
+    private static void getSystemInfo()
+    {
+        platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? OSPlatform.Windows
+            : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                ? OSPlatform.Linux
+                : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? OSPlatform.OSX
+                    : throw new PlatformNotSupportedException("Unsupported OS platform.");
+
+        arch = RuntimeInformation.OSArchitecture switch
+        {
+            Architecture.X64 => Architecture.X64,
+            Architecture.X86 => Architecture.X86,
+            Architecture.Arm64 => Architecture.Arm64,
+            _ => throw new PlatformNotSupportedException("Unsupported architecture.")
+        };
+    }
+
+    private static void setGrpcOverrideLocation()
+    {
+        var basePath = Path.GetFullPath(
+            Path.Combine(Assembly.GetCallingAssembly().Location, @"..\..\Libraries\")
+        );
+        var libraryMapping = new Dictionary<(OSPlatform, Architecture), string>
+        {
+            { (OSPlatform.Windows, Architecture.X64), "grpc_csharp_ext.x64.dll" },
+            { (OSPlatform.Windows, Architecture.X86), "grpc_csharp_ext.x86.dll" },
+            { (OSPlatform.Linux, Architecture.X64), "libgrpc_csharp_ext.x64.so" },
+            { (OSPlatform.OSX, Architecture.Arm64), "libgrpc_csharp_ext.arm64.dylib" },
+            { (OSPlatform.OSX, Architecture.X64), "libgrpc_csharp_ext.x64.dylib" }
+        };
+
+        if (libraryMapping.TryGetValue((platform, arch), out var libraryName))
+            Environment.SetEnvironmentVariable(
+                "GRPC_CSHARP_EXT_OVERRIDE_LOCATION",
+                Path.Combine(basePath, libraryName)
+            );
+        else
+            throw new NotSupportedException("Unsupported OS and Architecture combination.");
     }
 
     public static void Run()
@@ -338,7 +400,7 @@ public sealed class BootstrapTool
         }
 
         // If OS is not Windows, make python executable
-        if (platform != PlatformID.Win32NT)
+        if (platform != OSPlatform.Windows)
         {
             var chmodPSI = new ProcessStartInfo
             {

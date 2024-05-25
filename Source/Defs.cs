@@ -3,13 +3,11 @@ namespace AICore;
 [StaticConstructorOnStartup]
 public static class Graphics
 {
-    // public enum ServerStatus
-    // {
+    // ServerStatus
     //     Online,
     //     Busy,
     //     Error,
     //     Offline
-    // }
     public static readonly Texture2D[] ButtonServerStatus =
     [
         ContentFinder<Texture2D>.Get("ButtonOnline", true),

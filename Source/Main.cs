@@ -9,6 +9,8 @@ namespace AICore;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Configuration;
+using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -74,6 +76,7 @@ public class AICoreMod : Mod
     public static CancellationTokenSource onQuit = new();
     public static AICoreSettings Settings;
     public static ServerManager Server = ServerManager.Instance;
+    public static JobClient Client = JobClient.Instance;
     public static Mod self;
 
     public AICoreMod(ModContentPack content)
@@ -106,9 +109,9 @@ public class AICoreMod : Mod
             {
                 // This is the main entry point for the mod
 
-                // this configures server with any runtime information
-                // which doesn't depend on bootstrap status
-                // Server = ServerManager.Instance;
+                // Should only run after BootstrapTool.Run() finishes
+                // if not, implement connection manager in Client
+                Client.Start("127.0.0.1", 50051);
             }
         });
 
