@@ -85,6 +85,9 @@ public class AICoreMod : Mod
         self = this;
         Settings = GetSettings<AICoreSettings>();
 
+        // Get HW info and set intercepting env vars
+        BootstrapTool.preInit();
+
         // Force a reload of the runtime assembly binding settings
         // idk if it works but its something to experiment with
         ConfigurationManager.RefreshSection("runtime");

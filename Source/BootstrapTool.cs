@@ -32,6 +32,11 @@ public sealed class BootstrapTool
 {
     public static bool internetAccess = false;
     public static bool isConfigured = true;
+    public static Action preInit = () =>
+    {
+        getSystemInfo();
+        setGrpcOverrideLocation();
+    };
     private const string releaseString =
         "https://api.github.com/repos/igoforth/RWAILib/releases/latest";
     private const string bootstrapString =
@@ -39,8 +44,8 @@ public sealed class BootstrapTool
     private const string pythonString = "https://cosmo.zip/pub/cosmos/bin/python";
     private static string oldRelease = "_";
     private static string newRelease = "_";
-    private static OSPlatform platform;
-    private static Architecture arch;
+    private static OSPlatform? platform;
+    private static Architecture? arch;
     private static string shellBin;
     private static string modPath;
     private static string pythonPath;
@@ -51,7 +56,8 @@ public sealed class BootstrapTool
 
     private BootstrapTool()
     {
-        getSystemInfo();
+        if (platform == null || arch == null)
+            preInit();
         shellBin = platform == OSPlatform.Windows ? "powershell.exe" : "sh";
         modPath = Path.Combine(
             Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(),
@@ -68,7 +74,6 @@ public sealed class BootstrapTool
             platform == OSPlatform.Windows ? "llamafile.com" : "llamafile"
         );
         isConfigured = checkConfigured();
-        setGrpcOverrideLocation();
     }
 
     private static bool checkConfigured()
@@ -196,23 +201,56 @@ public sealed class BootstrapTool
 
     private static void setGrpcOverrideLocation()
     {
-        var basePath = Path.GetFullPath(
-            Path.Combine(Assembly.GetCallingAssembly().Location, @"..\..\Libraries\")
+        // determine correct lib
+        var libBaseDir = Path.GetFullPath(
+            Path.Combine(Assembly.GetCallingAssembly().Location, @"..\..\..\Libraries\")
         );
-        var libraryMapping = new Dictionary<(OSPlatform, Architecture), string>
+        var libraryMapping = new Dictionary<
+            (OSPlatform, Architecture),
+            (string libraryName, string dstName)
+        >
         {
-            { (OSPlatform.Windows, Architecture.X64), "grpc_csharp_ext.x64.dll" },
-            { (OSPlatform.Windows, Architecture.X86), "grpc_csharp_ext.x86.dll" },
-            { (OSPlatform.Linux, Architecture.X64), "libgrpc_csharp_ext.x64.so" },
-            { (OSPlatform.OSX, Architecture.Arm64), "libgrpc_csharp_ext.arm64.dylib" },
-            { (OSPlatform.OSX, Architecture.X64), "libgrpc_csharp_ext.x64.dylib" }
+            {
+                (OSPlatform.Windows, Architecture.X64),
+                ("grpc_csharp_ext.x64.dll", "grpc_csharp_ext.dll")
+            },
+            {
+                (OSPlatform.Windows, Architecture.X86),
+                ("grpc_csharp_ext.x86.dll", "grpc_csharp_ext.dll")
+            },
+            {
+                (OSPlatform.Linux, Architecture.X64),
+                ("libgrpc_csharp_ext.x64.so", "libgrpc_csharp_ext.so")
+            },
+            {
+                (OSPlatform.OSX, Architecture.Arm64),
+                ("libgrpc_csharp_ext.arm64.dylib", "libgrpc_csharp_ext.dylib")
+            },
+            {
+                (OSPlatform.OSX, Architecture.X64),
+                ("libgrpc_csharp_ext.x64.dylib", "libgrpc_csharp_ext.dylib")
+            }
         };
 
-        if (libraryMapping.TryGetValue((platform, arch), out var libraryName))
+        // set load path
+        if (libraryMapping.TryGetValue(((OSPlatform, Architecture))(platform, arch), out var value))
+        {
+            string libraryName = value.libraryName;
+            string dstName = value.dstName;
+
+            // TODO: Fix, or something. gRPC doesn't listen
             Environment.SetEnvironmentVariable(
                 "GRPC_CSHARP_EXT_OVERRIDE_LOCATION",
-                Path.Combine(basePath, libraryName)
+                Path.Combine(libBaseDir, libraryName)
             );
+
+            // backup: copy lib into search path
+            // `Fallback handler could not load library %USERPROFILE%/scoop/apps/steam/current/steamapps/common/RimWorld/RimWorldWin64_Data/Mono/grpc_csharp_ext.dll`
+            var dllLoadDir = Path.Combine(Application.dataPath, "Mono");
+            if (!Directory.Exists(dllLoadDir))
+                Directory.CreateDirectory(dllLoadDir);
+            File.Copy(Path.Combine(libBaseDir, libraryName), Path.Combine(dllLoadDir, dstName));
+        }
         else
             throw new NotSupportedException("Unsupported OS and Architecture combination.");
     }
