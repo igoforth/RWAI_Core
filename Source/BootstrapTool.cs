@@ -247,9 +247,11 @@ public sealed class BootstrapTool
             // backup: copy lib into search path
             // `Fallback handler could not load library %USERPROFILE%/scoop/apps/steam/current/steamapps/common/RimWorld/RimWorldWin64_Data/Mono/grpc_csharp_ext.dll`
             var dllLoadDir = Path.Combine(Application.dataPath, "Mono");
+            var dstPath = Path.Combine(dllLoadDir, dstName);
             if (!Directory.Exists(dllLoadDir))
                 Directory.CreateDirectory(dllLoadDir);
-            File.Copy(Path.Combine(libBaseDir, libraryName), Path.Combine(dllLoadDir, dstName));
+            if (!File.Exists(dstPath))
+                File.Copy(Path.Combine(libBaseDir, libraryName), dstPath);
         }
         else
             throw new NotSupportedException("Unsupported OS and Architecture combination.");
@@ -507,14 +509,17 @@ public sealed class BootstrapTool
                 {
                     sw.WriteLine(scriptContent);
                 }
-                sw.Close();
             }
 
             // Read the output stream first and then wait.
             bootstrapProcess.BeginOutputReadLine();
             bootstrapProcess.BeginErrorReadLine();
 
-            bootstrapProcess.WaitForExit();
+            await Task.Run(() => bootstrapProcess.WaitForExit());
+
+            // Process completion missed, setting task result to false
+            if (!bootstrapDone.Task.IsCompleted)
+                bootstrapDone.TrySetResult(false);
         }
         catch (Exception ex)
         {
@@ -525,10 +530,12 @@ public sealed class BootstrapTool
 
         if (bootstrapDone.Task.IsFaulted)
         {
+            // true negative
             LogTool.Error("Unknown error occurred with bootstrap process!");
         }
         else if (bootstrapDone.Task.IsCanceled)
         {
+            // true negative
             ProcessInterruptHelper.SendSigINT(bootstrapProcess);
         }
     }
@@ -545,10 +552,12 @@ public sealed class BootstrapTool
 #endif
         if (bootstrapProcess.ExitCode != 0)
         {
+            // true negative
             ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
             bootstrapDone.TrySetResult(false);
         }
         else
+            // true positive
             bootstrapDone.TrySetResult(true);
     }
 }

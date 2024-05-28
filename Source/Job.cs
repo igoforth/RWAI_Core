@@ -25,19 +25,24 @@ namespace AICore {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "Cglqb2IucHJvdG8SA2pvYhoeZ29vZ2xlL3Byb3RvYnVmL2R1cmF0aW9uLnBy",
-            "b3RvGh9nb29nbGUvcHJvdG9idWYvdGltZXN0YW1wLnByb3RvImkKCkpvYlJl",
-            "cXVlc3QSDgoGam9iX2lkGAEgASgNEhAKCGpvYl90eXBlGAIgASgJEigKBHRp",
-            "bWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg8KB3BheWxv",
-            "YWQYDyABKAwibQoLSm9iUmVzcG9uc2USDgoGam9iX2lkGAEgASgNEhAKCGpv",
-            "Yl90eXBlGAIgASgJEisKCGR1cmF0aW9uGAMgASgLMhkuZ29vZ2xlLnByb3Rv",
-            "YnVmLkR1cmF0aW9uEg8KB3BheWxvYWQYDyABKAwyPQoKSm9iTWFuYWdlchIv",
-            "CgpKb2JTZXJ2aWNlEg8uam9iLkpvYlJlcXVlc3QaEC5qb2IuSm9iUmVzcG9u",
-            "c2VCCaoCBkFJQ29yZWIGcHJvdG8z"));
+            "b3RvGh9nb29nbGUvcHJvdG9idWYvdGltZXN0YW1wLnByb3RvIs0BCgpKb2JS",
+            "ZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoDRIQCghqb2JfdHlwZRgCIAEoCRIoCgR0",
+            "aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJAChNhcnRf",
+            "ZGVzY3JpcHRpb25fam9iGAQgASgLMiEuam9iLkpvYlJlcXVlc3QuQXJ0RGVz",
+            "Y3JpcHRpb25Kb2JIABoiChFBcnREZXNjcmlwdGlvbkpvYhINCgVpbnB1dBgB",
+            "IAEoCUINCgtqb2JfcGF5bG9hZCL1AQoLSm9iUmVzcG9uc2USDgoGam9iX2lk",
+            "GAEgASgNEhAKCGpvYl90eXBlGAIgASgJEisKCGR1cmF0aW9uGAMgASgLMhku",
+            "Z29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEksKGGFydF9kZXNjcmlwdGlvbl9y",
+            "ZXNwb25zZRgEIAEoCzInLmpvYi5Kb2JSZXNwb25zZS5BcnREZXNjcmlwdGlv",
+            "blJlc3BvbnNlSAAaPAoWQXJ0RGVzY3JpcHRpb25SZXNwb25zZRINCgV0aXRs",
+            "ZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCUIMCgpqb2JfcmVzdWx0Mj0K",
+            "CkpvYk1hbmFnZXISLwoKSm9iU2VydmljZRIPLmpvYi5Kb2JSZXF1ZXN0GhAu",
+            "am9iLkpvYlJlc3BvbnNlQgmqAgZBSUNvcmViBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.DurationReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.TimestampReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::AICore.JobRequest), global::AICore.JobRequest.Parser, new[]{ "JobId", "JobType", "Time", "Payload" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::AICore.JobResponse), global::AICore.JobResponse.Parser, new[]{ "JobId", "JobType", "Duration", "Payload" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::AICore.JobRequest), global::AICore.JobRequest.Parser, new[]{ "JobId", "JobType", "Time", "ArtDescriptionJob" }, new[]{ "JobPayload" }, null, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::AICore.JobRequest.Types.ArtDescriptionJob), global::AICore.JobRequest.Types.ArtDescriptionJob.Parser, new[]{ "Input" }, null, null, null, null)}),
+            new pbr::GeneratedClrTypeInfo(typeof(global::AICore.JobResponse), global::AICore.JobResponse.Parser, new[]{ "JobId", "JobType", "Duration", "ArtDescriptionResponse" }, new[]{ "JobResult" }, null, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::AICore.JobResponse.Types.ArtDescriptionResponse), global::AICore.JobResponse.Types.ArtDescriptionResponse.Parser, new[]{ "Title", "Description" }, null, null, null, null)})
           }));
     }
     #endregion
@@ -85,7 +90,12 @@ namespace AICore {
       jobId_ = other.jobId_;
       jobType_ = other.jobType_;
       time_ = other.time_ != null ? other.time_.Clone() : null;
-      payload_ = other.payload_;
+      switch (other.JobPayloadCase) {
+        case JobPayloadOneofCase.ArtDescriptionJob:
+          ArtDescriptionJob = other.ArtDescriptionJob.Clone();
+          break;
+      }
+
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -137,19 +147,39 @@ namespace AICore {
       }
     }
 
-    /// <summary>Field number for the "payload" field.</summary>
-    public const int PayloadFieldNumber = 15;
-    private pb::ByteString payload_ = pb::ByteString.Empty;
+    /// <summary>Field number for the "art_description_job" field.</summary>
+    public const int ArtDescriptionJobFieldNumber = 4;
     /// <summary>
-    /// Encoded data necessary for the job
+    /// Add other job types here
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pb::ByteString Payload {
-      get { return payload_; }
+    public global::AICore.JobRequest.Types.ArtDescriptionJob ArtDescriptionJob {
+      get { return jobPayloadCase_ == JobPayloadOneofCase.ArtDescriptionJob ? (global::AICore.JobRequest.Types.ArtDescriptionJob) jobPayload_ : null; }
       set {
-        payload_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        jobPayload_ = value;
+        jobPayloadCase_ = value == null ? JobPayloadOneofCase.None : JobPayloadOneofCase.ArtDescriptionJob;
       }
+    }
+
+    private object jobPayload_;
+    /// <summary>Enum of possible cases for the "job_payload" oneof.</summary>
+    public enum JobPayloadOneofCase {
+      None = 0,
+      ArtDescriptionJob = 4,
+    }
+    private JobPayloadOneofCase jobPayloadCase_ = JobPayloadOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public JobPayloadOneofCase JobPayloadCase {
+      get { return jobPayloadCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearJobPayload() {
+      jobPayloadCase_ = JobPayloadOneofCase.None;
+      jobPayload_ = null;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -170,7 +200,8 @@ namespace AICore {
       if (JobId != other.JobId) return false;
       if (JobType != other.JobType) return false;
       if (!object.Equals(Time, other.Time)) return false;
-      if (Payload != other.Payload) return false;
+      if (!object.Equals(ArtDescriptionJob, other.ArtDescriptionJob)) return false;
+      if (JobPayloadCase != other.JobPayloadCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -181,7 +212,8 @@ namespace AICore {
       if (JobId != 0) hash ^= JobId.GetHashCode();
       if (JobType.Length != 0) hash ^= JobType.GetHashCode();
       if (time_ != null) hash ^= Time.GetHashCode();
-      if (Payload.Length != 0) hash ^= Payload.GetHashCode();
+      if (jobPayloadCase_ == JobPayloadOneofCase.ArtDescriptionJob) hash ^= ArtDescriptionJob.GetHashCode();
+      hash ^= (int) jobPayloadCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -212,9 +244,9 @@ namespace AICore {
         output.WriteRawTag(26);
         output.WriteMessage(Time);
       }
-      if (Payload.Length != 0) {
-        output.WriteRawTag(122);
-        output.WriteBytes(Payload);
+      if (jobPayloadCase_ == JobPayloadOneofCase.ArtDescriptionJob) {
+        output.WriteRawTag(34);
+        output.WriteMessage(ArtDescriptionJob);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -238,9 +270,9 @@ namespace AICore {
         output.WriteRawTag(26);
         output.WriteMessage(Time);
       }
-      if (Payload.Length != 0) {
-        output.WriteRawTag(122);
-        output.WriteBytes(Payload);
+      if (jobPayloadCase_ == JobPayloadOneofCase.ArtDescriptionJob) {
+        output.WriteRawTag(34);
+        output.WriteMessage(ArtDescriptionJob);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -261,8 +293,8 @@ namespace AICore {
       if (time_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Time);
       }
-      if (Payload.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Payload);
+      if (jobPayloadCase_ == JobPayloadOneofCase.ArtDescriptionJob) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(ArtDescriptionJob);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -288,9 +320,15 @@ namespace AICore {
         }
         Time.MergeFrom(other.Time);
       }
-      if (other.Payload.Length != 0) {
-        Payload = other.Payload;
+      switch (other.JobPayloadCase) {
+        case JobPayloadOneofCase.ArtDescriptionJob:
+          if (ArtDescriptionJob == null) {
+            ArtDescriptionJob = new global::AICore.JobRequest.Types.ArtDescriptionJob();
+          }
+          ArtDescriptionJob.MergeFrom(other.ArtDescriptionJob);
+          break;
       }
+
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -321,8 +359,13 @@ namespace AICore {
             input.ReadMessage(Time);
             break;
           }
-          case 122: {
-            Payload = input.ReadBytes();
+          case 34: {
+            global::AICore.JobRequest.Types.ArtDescriptionJob subBuilder = new global::AICore.JobRequest.Types.ArtDescriptionJob();
+            if (jobPayloadCase_ == JobPayloadOneofCase.ArtDescriptionJob) {
+              subBuilder.MergeFrom(ArtDescriptionJob);
+            }
+            input.ReadMessage(subBuilder);
+            ArtDescriptionJob = subBuilder;
             break;
           }
         }
@@ -355,14 +398,220 @@ namespace AICore {
             input.ReadMessage(Time);
             break;
           }
-          case 122: {
-            Payload = input.ReadBytes();
+          case 34: {
+            global::AICore.JobRequest.Types.ArtDescriptionJob subBuilder = new global::AICore.JobRequest.Types.ArtDescriptionJob();
+            if (jobPayloadCase_ == JobPayloadOneofCase.ArtDescriptionJob) {
+              subBuilder.MergeFrom(ArtDescriptionJob);
+            }
+            input.ReadMessage(subBuilder);
+            ArtDescriptionJob = subBuilder;
             break;
           }
         }
       }
     }
     #endif
+
+    #region Nested types
+    /// <summary>Container for nested types declared in the JobRequest message type.</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static partial class Types {
+      /// <summary>
+      /// Nested messages for different job types
+      /// </summary>
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+      public sealed partial class ArtDescriptionJob : pb::IMessage<ArtDescriptionJob>
+      #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+          , pb::IBufferMessage
+      #endif
+      {
+        private static readonly pb::MessageParser<ArtDescriptionJob> _parser = new pb::MessageParser<ArtDescriptionJob>(() => new ArtDescriptionJob());
+        private pb::UnknownFieldSet _unknownFields;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public static pb::MessageParser<ArtDescriptionJob> Parser { get { return _parser; } }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public static pbr::MessageDescriptor Descriptor {
+          get { return global::AICore.JobRequest.Descriptor.NestedTypes[0]; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        pbr::MessageDescriptor pb::IMessage.Descriptor {
+          get { return Descriptor; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public ArtDescriptionJob() {
+          OnConstruction();
+        }
+
+        partial void OnConstruction();
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public ArtDescriptionJob(ArtDescriptionJob other) : this() {
+          input_ = other.input_;
+          _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public ArtDescriptionJob Clone() {
+          return new ArtDescriptionJob(this);
+        }
+
+        /// <summary>Field number for the "input" field.</summary>
+        public const int InputFieldNumber = 1;
+        private string input_ = "";
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public string Input {
+          get { return input_; }
+          set {
+            input_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public override bool Equals(object other) {
+          return Equals(other as ArtDescriptionJob);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public bool Equals(ArtDescriptionJob other) {
+          if (ReferenceEquals(other, null)) {
+            return false;
+          }
+          if (ReferenceEquals(other, this)) {
+            return true;
+          }
+          if (Input != other.Input) return false;
+          return Equals(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public override int GetHashCode() {
+          int hash = 1;
+          if (Input.Length != 0) hash ^= Input.GetHashCode();
+          if (_unknownFields != null) {
+            hash ^= _unknownFields.GetHashCode();
+          }
+          return hash;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public override string ToString() {
+          return pb::JsonFormatter.ToDiagnosticString(this);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public void WriteTo(pb::CodedOutputStream output) {
+        #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+          output.WriteRawMessage(this);
+        #else
+          if (Input.Length != 0) {
+            output.WriteRawTag(10);
+            output.WriteString(Input);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(output);
+          }
+        #endif
+        }
+
+        #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+          if (Input.Length != 0) {
+            output.WriteRawTag(10);
+            output.WriteString(Input);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(ref output);
+          }
+        }
+        #endif
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public int CalculateSize() {
+          int size = 0;
+          if (Input.Length != 0) {
+            size += 1 + pb::CodedOutputStream.ComputeStringSize(Input);
+          }
+          if (_unknownFields != null) {
+            size += _unknownFields.CalculateSize();
+          }
+          return size;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public void MergeFrom(ArtDescriptionJob other) {
+          if (other == null) {
+            return;
+          }
+          if (other.Input.Length != 0) {
+            Input = other.Input;
+          }
+          _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public void MergeFrom(pb::CodedInputStream input) {
+        #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+          input.ReadRawMessage(this);
+        #else
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+                break;
+              case 10: {
+                Input = input.ReadString();
+                break;
+              }
+            }
+          }
+        #endif
+        }
+
+        #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+                break;
+              case 10: {
+                Input = input.ReadString();
+                break;
+              }
+            }
+          }
+        }
+        #endif
+
+      }
+
+    }
+    #endregion
 
   }
 
@@ -407,7 +656,12 @@ namespace AICore {
       jobId_ = other.jobId_;
       jobType_ = other.jobType_;
       duration_ = other.duration_ != null ? other.duration_.Clone() : null;
-      payload_ = other.payload_;
+      switch (other.JobResultCase) {
+        case JobResultOneofCase.ArtDescriptionResponse:
+          ArtDescriptionResponse = other.ArtDescriptionResponse.Clone();
+          break;
+      }
+
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -450,9 +704,6 @@ namespace AICore {
     /// <summary>Field number for the "duration" field.</summary>
     public const int DurationFieldNumber = 3;
     private global::Google.Protobuf.WellKnownTypes.Duration duration_;
-    /// <summary>
-    /// Whether the job was accepted into the queue
-    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Google.Protobuf.WellKnownTypes.Duration Duration {
@@ -462,19 +713,39 @@ namespace AICore {
       }
     }
 
-    /// <summary>Field number for the "payload" field.</summary>
-    public const int PayloadFieldNumber = 15;
-    private pb::ByteString payload_ = pb::ByteString.Empty;
+    /// <summary>Field number for the "art_description_response" field.</summary>
+    public const int ArtDescriptionResponseFieldNumber = 4;
     /// <summary>
-    /// Encoded result
+    /// Add other job response types here
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pb::ByteString Payload {
-      get { return payload_; }
+    public global::AICore.JobResponse.Types.ArtDescriptionResponse ArtDescriptionResponse {
+      get { return jobResultCase_ == JobResultOneofCase.ArtDescriptionResponse ? (global::AICore.JobResponse.Types.ArtDescriptionResponse) jobResult_ : null; }
       set {
-        payload_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        jobResult_ = value;
+        jobResultCase_ = value == null ? JobResultOneofCase.None : JobResultOneofCase.ArtDescriptionResponse;
       }
+    }
+
+    private object jobResult_;
+    /// <summary>Enum of possible cases for the "job_result" oneof.</summary>
+    public enum JobResultOneofCase {
+      None = 0,
+      ArtDescriptionResponse = 4,
+    }
+    private JobResultOneofCase jobResultCase_ = JobResultOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public JobResultOneofCase JobResultCase {
+      get { return jobResultCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearJobResult() {
+      jobResultCase_ = JobResultOneofCase.None;
+      jobResult_ = null;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -495,7 +766,8 @@ namespace AICore {
       if (JobId != other.JobId) return false;
       if (JobType != other.JobType) return false;
       if (!object.Equals(Duration, other.Duration)) return false;
-      if (Payload != other.Payload) return false;
+      if (!object.Equals(ArtDescriptionResponse, other.ArtDescriptionResponse)) return false;
+      if (JobResultCase != other.JobResultCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -506,7 +778,8 @@ namespace AICore {
       if (JobId != 0) hash ^= JobId.GetHashCode();
       if (JobType.Length != 0) hash ^= JobType.GetHashCode();
       if (duration_ != null) hash ^= Duration.GetHashCode();
-      if (Payload.Length != 0) hash ^= Payload.GetHashCode();
+      if (jobResultCase_ == JobResultOneofCase.ArtDescriptionResponse) hash ^= ArtDescriptionResponse.GetHashCode();
+      hash ^= (int) jobResultCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -537,9 +810,9 @@ namespace AICore {
         output.WriteRawTag(26);
         output.WriteMessage(Duration);
       }
-      if (Payload.Length != 0) {
-        output.WriteRawTag(122);
-        output.WriteBytes(Payload);
+      if (jobResultCase_ == JobResultOneofCase.ArtDescriptionResponse) {
+        output.WriteRawTag(34);
+        output.WriteMessage(ArtDescriptionResponse);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -563,9 +836,9 @@ namespace AICore {
         output.WriteRawTag(26);
         output.WriteMessage(Duration);
       }
-      if (Payload.Length != 0) {
-        output.WriteRawTag(122);
-        output.WriteBytes(Payload);
+      if (jobResultCase_ == JobResultOneofCase.ArtDescriptionResponse) {
+        output.WriteRawTag(34);
+        output.WriteMessage(ArtDescriptionResponse);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -586,8 +859,8 @@ namespace AICore {
       if (duration_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Duration);
       }
-      if (Payload.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Payload);
+      if (jobResultCase_ == JobResultOneofCase.ArtDescriptionResponse) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(ArtDescriptionResponse);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -613,9 +886,15 @@ namespace AICore {
         }
         Duration.MergeFrom(other.Duration);
       }
-      if (other.Payload.Length != 0) {
-        Payload = other.Payload;
+      switch (other.JobResultCase) {
+        case JobResultOneofCase.ArtDescriptionResponse:
+          if (ArtDescriptionResponse == null) {
+            ArtDescriptionResponse = new global::AICore.JobResponse.Types.ArtDescriptionResponse();
+          }
+          ArtDescriptionResponse.MergeFrom(other.ArtDescriptionResponse);
+          break;
       }
+
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -646,8 +925,13 @@ namespace AICore {
             input.ReadMessage(Duration);
             break;
           }
-          case 122: {
-            Payload = input.ReadBytes();
+          case 34: {
+            global::AICore.JobResponse.Types.ArtDescriptionResponse subBuilder = new global::AICore.JobResponse.Types.ArtDescriptionResponse();
+            if (jobResultCase_ == JobResultOneofCase.ArtDescriptionResponse) {
+              subBuilder.MergeFrom(ArtDescriptionResponse);
+            }
+            input.ReadMessage(subBuilder);
+            ArtDescriptionResponse = subBuilder;
             break;
           }
         }
@@ -680,14 +964,257 @@ namespace AICore {
             input.ReadMessage(Duration);
             break;
           }
-          case 122: {
-            Payload = input.ReadBytes();
+          case 34: {
+            global::AICore.JobResponse.Types.ArtDescriptionResponse subBuilder = new global::AICore.JobResponse.Types.ArtDescriptionResponse();
+            if (jobResultCase_ == JobResultOneofCase.ArtDescriptionResponse) {
+              subBuilder.MergeFrom(ArtDescriptionResponse);
+            }
+            input.ReadMessage(subBuilder);
+            ArtDescriptionResponse = subBuilder;
             break;
           }
         }
       }
     }
     #endif
+
+    #region Nested types
+    /// <summary>Container for nested types declared in the JobResponse message type.</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static partial class Types {
+      /// <summary>
+      /// Nested messages for different job types
+      /// </summary>
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+      public sealed partial class ArtDescriptionResponse : pb::IMessage<ArtDescriptionResponse>
+      #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+          , pb::IBufferMessage
+      #endif
+      {
+        private static readonly pb::MessageParser<ArtDescriptionResponse> _parser = new pb::MessageParser<ArtDescriptionResponse>(() => new ArtDescriptionResponse());
+        private pb::UnknownFieldSet _unknownFields;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public static pb::MessageParser<ArtDescriptionResponse> Parser { get { return _parser; } }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public static pbr::MessageDescriptor Descriptor {
+          get { return global::AICore.JobResponse.Descriptor.NestedTypes[0]; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        pbr::MessageDescriptor pb::IMessage.Descriptor {
+          get { return Descriptor; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public ArtDescriptionResponse() {
+          OnConstruction();
+        }
+
+        partial void OnConstruction();
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public ArtDescriptionResponse(ArtDescriptionResponse other) : this() {
+          title_ = other.title_;
+          description_ = other.description_;
+          _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public ArtDescriptionResponse Clone() {
+          return new ArtDescriptionResponse(this);
+        }
+
+        /// <summary>Field number for the "title" field.</summary>
+        public const int TitleFieldNumber = 1;
+        private string title_ = "";
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public string Title {
+          get { return title_; }
+          set {
+            title_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+          }
+        }
+
+        /// <summary>Field number for the "description" field.</summary>
+        public const int DescriptionFieldNumber = 2;
+        private string description_ = "";
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public string Description {
+          get { return description_; }
+          set {
+            description_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public override bool Equals(object other) {
+          return Equals(other as ArtDescriptionResponse);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public bool Equals(ArtDescriptionResponse other) {
+          if (ReferenceEquals(other, null)) {
+            return false;
+          }
+          if (ReferenceEquals(other, this)) {
+            return true;
+          }
+          if (Title != other.Title) return false;
+          if (Description != other.Description) return false;
+          return Equals(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public override int GetHashCode() {
+          int hash = 1;
+          if (Title.Length != 0) hash ^= Title.GetHashCode();
+          if (Description.Length != 0) hash ^= Description.GetHashCode();
+          if (_unknownFields != null) {
+            hash ^= _unknownFields.GetHashCode();
+          }
+          return hash;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public override string ToString() {
+          return pb::JsonFormatter.ToDiagnosticString(this);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public void WriteTo(pb::CodedOutputStream output) {
+        #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+          output.WriteRawMessage(this);
+        #else
+          if (Title.Length != 0) {
+            output.WriteRawTag(10);
+            output.WriteString(Title);
+          }
+          if (Description.Length != 0) {
+            output.WriteRawTag(18);
+            output.WriteString(Description);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(output);
+          }
+        #endif
+        }
+
+        #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+          if (Title.Length != 0) {
+            output.WriteRawTag(10);
+            output.WriteString(Title);
+          }
+          if (Description.Length != 0) {
+            output.WriteRawTag(18);
+            output.WriteString(Description);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(ref output);
+          }
+        }
+        #endif
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public int CalculateSize() {
+          int size = 0;
+          if (Title.Length != 0) {
+            size += 1 + pb::CodedOutputStream.ComputeStringSize(Title);
+          }
+          if (Description.Length != 0) {
+            size += 1 + pb::CodedOutputStream.ComputeStringSize(Description);
+          }
+          if (_unknownFields != null) {
+            size += _unknownFields.CalculateSize();
+          }
+          return size;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public void MergeFrom(ArtDescriptionResponse other) {
+          if (other == null) {
+            return;
+          }
+          if (other.Title.Length != 0) {
+            Title = other.Title;
+          }
+          if (other.Description.Length != 0) {
+            Description = other.Description;
+          }
+          _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        public void MergeFrom(pb::CodedInputStream input) {
+        #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+          input.ReadRawMessage(this);
+        #else
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+                break;
+              case 10: {
+                Title = input.ReadString();
+                break;
+              }
+              case 18: {
+                Description = input.ReadString();
+                break;
+              }
+            }
+          }
+        #endif
+        }
+
+        #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+        void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+                break;
+              case 10: {
+                Title = input.ReadString();
+                break;
+              }
+              case 18: {
+                Description = input.ReadString();
+                break;
+              }
+            }
+          }
+        }
+        #endif
+
+      }
+
+    }
+    #endregion
 
   }
 

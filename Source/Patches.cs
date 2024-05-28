@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using Prepatcher;
 
 namespace AICore;
 
@@ -279,6 +280,57 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
     }
 }
 
+// add hook to TryGetComp to intercept setquality and add to our work queue
+//
+[StaticConstructorOnStartup]
+[HarmonyPatch(typeof(CompArt), nameof(CompArt.GenerateImageDescription))]
+public static class CompArt_GenerateImageDescription_Patch
+{
+    public static void Postfix(CompArt __instance, ref TaggedString __result)
+    {
+        LogTool.Message("Handling CompArt type");
+        var hashCode = __instance.GetHashCode();
+
+        // determine if we have AI-Generated result for Thing already
+        var itemStatus = UpdateItemDescriptions.GetStatus(hashCode);
+        if (itemStatus == UpdateItemDescriptions.ItemStatus.NotDone)
+            goto work;
+        else if (itemStatus == UpdateItemDescriptions.ItemStatus.Done)
+        {
+            var value = UpdateItemDescriptions.GetValues(hashCode);
+            if (value.HasValue)
+                (_, __result) = value.Value;
+        }
+        return;
+
+        work:
+        // send thing as job with relevant info
+        // 1. send "Thing" from ScribeSaver.DebugOutputFor()
+        // 2. send Title, Description from CompArt.GenerateTitle(), CompArt.GenerateImageDescription()
+        string myDef = Scribe.saver.DebugOutputFor(__instance.parent);
+        string description = __result;
+        string title = GenText.CapitalizeAsTitle(
+            __instance.taleRef.GenerateText(
+                TextGenerationPurpose.ArtName,
+                __instance.Props.nameMaker
+            )
+        );
+        UpdateItemDescriptions.SubmitJob(hashCode, myDef, title, description);
+
+        // use substring replacement to replace CompArt.GetDescriptionPart()
+        // of ThingWithComps.DescriptionFlavor with our new AI description
+    }
+}
+
+// // Token: 0x0600A8B8 RID: 43192 RVA: 0x003C014C File Offset: 0x003BE34C
+// public static void DoPlaySettings(WidgetRow rowVisibility, bool worldView, ref float curBaseY)
+// {
+//     float num = curBaseY - TimeControls.TimeButSize.y;
+//     rowVisibility.Init((float)UI.screenWidth, num, UIDirection.LeftThenUp, 141f, 4f);
+//     Find.PlaySettings.DoPlaySettingsGlobalControls(rowVisibility, worldView);
+//     curBaseY = rowVisibility.FinalY;
+// }
+
 // // add toggle button to play settings
 // //
 // [StaticConstructorOnStartup]
@@ -316,6 +368,7 @@ public static partial class GenerallTimeUpdates_Patch
         new()
         {
             { "ServerStatus", new UpdateTaskTime(() => 2.0f, UpdateServerStatus.Task, false) },
+            { "WorkItems", new UpdateTaskTime(() => 5.0f, UpdateItemDescriptions.Task, false) },
         };
 
     public static void Postfix()

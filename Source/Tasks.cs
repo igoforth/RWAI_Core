@@ -2,8 +2,11 @@ using HarmonyLib;
 
 namespace AICore;
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 // updates the Colony Setting, including weather, date, name of colony, etc
 // used to update the record keeper, which in turn is used by the AI as part of game state
@@ -61,9 +64,96 @@ public static class UpdateServerStatus
 {
     public static ServerManager.ServerStatus serverStatusEnum = ServerManager.serverStatusEnum;
     public static string serverStatus = ServerManager.serverStatus;
+
     public static void Task()
     {
         serverStatusEnum = ServerManager.serverStatusEnum;
         serverStatus = ServerManager.serverStatus;
+    }
+}
+
+// updates the item descriptions
+// search for items with quality indicator
+// deep inspect to get xml
+// submit each item as job
+// make callback available that attempts to update item description
+// stores a record of items that have been updated
+//
+public static class UpdateItemDescriptions
+{
+    public enum ItemStatus
+    {
+        Done,
+        Working,
+        NotDone
+    }
+
+    // Thing.GetHashCode(), workedOn (bool)
+    private static ConcurrentDictionary<int, ItemStatus> objectStatuses =
+        new ConcurrentDictionary<int, ItemStatus>();
+
+    private static LazyCompressedDictionary objectValues = new LazyCompressedDictionary(
+        Path.Combine(
+            [
+                Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(),
+                "RWAI",
+                "Items",
+                "items.dat"
+            ]
+        )
+    );
+
+    public static ItemStatus GetStatus(int id)
+    {
+        if (!objectStatuses.ContainsKey(id))
+            objectStatuses.TryAdd(id, ItemStatus.NotDone);
+        else if (GetValues(id) != null)
+            objectStatuses[id] = ItemStatus.Done;
+        return objectStatuses[id];
+    }
+
+    public static (string, string)? GetValues(int id)
+    {
+        if (!objectStatuses.ContainsKey(id))
+            return null;
+        return objectValues.Get(id);
+    }
+
+    public static void SubmitJob(int id, string def, string title, string description) { }
+
+    public static void Task()
+    {
+        var map = Find.CurrentMap;
+        if (map == null)
+            return;
+
+        // Parallel.ForEach(
+        //     objects,
+        //     obj =>
+        //     {
+        //         LongTask(obj);
+        //         objectStatuses[obj] = true;
+        //     }
+        // );
+
+        // foreach (Thing thing3 in Find.CurrentMap.thingGrid.ThingsAt(intVec))
+        // {
+        //     if (!this.fullMode)
+        //     {
+        //         stringBuilder.AppendLine(thing3.LabelCap + " - " + thing3.ToString());
+        //     }
+        //     else
+        //     {
+        //         stringBuilder.AppendLine(Scribe.saver.DebugOutputFor(thing3));
+        //         stringBuilder.AppendLine();
+        //     }
+        // }
+    }
+
+    public static async void Finish(int id, string Title, string Description)
+    {
+        await objectValues.AddOrUpdateAsync(id, Title, Description);
+        if (objectStatuses.ContainsKey(id))
+            objectStatuses[id] = ItemStatus.Done;
     }
 }
