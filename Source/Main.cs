@@ -9,8 +9,6 @@ namespace AICore;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Configuration;
-using System.IO;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -38,46 +36,81 @@ public static class Main
         while (true)
         {
             yield return null;
-            if (actions.TryDequeue(out var action) == false)
-                continue;
-            action();
+            if (actions.TryDequeue(out var action))
+                action?.Invoke();
         }
     }
 
     public static async Task Perform(Action action)
     {
-        var working = true;
+        var tcs = new TaskCompletionSource<bool>();
+
         actions.Enqueue(() =>
         {
-            action();
-            working = false;
+            try
+            {
+                action();
+                tcs.SetResult(true);
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
         });
-        while (working)
+
+        // Process the actions in the queue
+        while (!tcs.Task.IsCompleted)
+        {
+            if (actions.TryDequeue(out var queuedAction))
+            {
+                queuedAction();
+            }
+
             await Task.Delay(200);
+        }
+
+        await tcs.Task;
     }
 
     public static async Task<T> Perform<T>(Func<T> action)
     {
-        T result = default;
-        var working = true;
+        var tcs = new TaskCompletionSource<T>();
+
         actions.Enqueue(() =>
         {
-            result = action();
-            working = false;
+            try
+            {
+                var result = action();
+                tcs.SetResult(result);
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
         });
-        while (working)
+
+        // Process the actions in the queue
+        while (!tcs.Task.IsCompleted)
+        {
+            if (actions.TryDequeue(out var queuedAction))
+            {
+                queuedAction();
+            }
+
             await Task.Delay(200);
-        return result;
+        }
+
+        return await tcs.Task;
     }
 }
 
 public class AICoreMod : Mod
 {
     public static CancellationTokenSource onQuit = new();
-    public static AICoreSettings Settings;
+    public static AICoreSettings? Settings;
     public static ServerManager Server = ServerManager.Instance;
     public static JobClient Client = JobClient.Instance;
-    public static Mod self;
+    public static Mod? self;
 
     public AICoreMod(ModContentPack content)
         : base(content)
@@ -127,7 +160,8 @@ public class AICoreMod : Mod
 
     public static bool Running => onQuit.IsCancellationRequested == false;
 
-    public override void DoSettingsWindowContents(Rect inRect) => Settings.DoWindowContents(inRect);
+    public override void DoSettingsWindowContents(Rect inRect) =>
+        Settings?.DoWindowContents(inRect);
 
     public override string SettingsCategory() => "AI Core";
 }

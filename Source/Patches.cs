@@ -3,7 +3,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
-using Prepatcher;
 
 namespace AICore;
 
@@ -114,15 +113,15 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
 [HarmonyPatch(typeof(GlobalControls), nameof(GlobalControls.GlobalControlsOnGUI))]
 public static class GlobalControls_GlobalControlsOnGUI_Patch
 {
-    private static MethodInfo m_GenUI_DrawTextWinterShadow = AccessTools.Method(
+    private static readonly MethodInfo m_GenUI_DrawTextWinterShadow = AccessTools.Method(
         typeof(GenUI),
         nameof(GenUI.DrawTextWinterShadow)
     );
-    private static MethodInfo m_GlobalControlsUtility_DoPlaySettings = AccessTools.Method(
+    private static readonly MethodInfo m_GlobalControlsUtility_DoPlaySettings = AccessTools.Method(
         typeof(GlobalControlsUtility),
         nameof(GlobalControlsUtility.DoPlaySettings)
     );
-    private static MethodInfo m_PlayGUIServerStatusPatch = AccessTools.Method(
+    private static readonly MethodInfo m_PlayGUIServerStatusPatch = AccessTools.Method(
         typeof(GlobalControls_GlobalControlsOnGUI_Patch),
         nameof(PlayGUIServerStatusPatch)
     );
@@ -154,7 +153,7 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
             goto transpiler_error;
 
         // assert num2 -= 4;
-        IEnumerable<CodeInstruction> gadget_ScreenHeightDecrement =
+        IEnumerable<CodeInstruction>? gadget_ScreenHeightDecrement =
             (
                 new[]
                 {
@@ -187,7 +186,7 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
             goto transpiler_error;
 
         // assert num2 is last arg of DoPlaySettings
-        IEnumerable<CodeInstruction> gadget_ScreenHeightReference =
+        IEnumerable<CodeInstruction>? gadget_ScreenHeightReference =
             (codes[k - 1].opcode == OpCodes.Ldloca_S) ? [codes[k - 1].Clone()] : null;
         if (gadget_ScreenHeightReference is null)
             goto transpiler_error;
@@ -199,12 +198,7 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
         // sub		        // subtract
         // stloc.1		    // store local 1
         var newInstructions = gadget_ScreenHeightReference
-            .Concat(
-                new List<CodeInstruction>
-                {
-                    new CodeInstruction(OpCodes.Call, m_PlayGUIServerStatusPatch)
-                }
-            )
+            .Concat([new CodeInstruction(OpCodes.Call, m_PlayGUIServerStatusPatch)])
             .Concat(gadget_ScreenHeightDecrement);
 
         // Insert new instructions after the found index `j`
@@ -280,45 +274,199 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
     }
 }
 
-// add hook to TryGetComp to intercept setquality and add to our work queue
+// // Modify Title accessors
+// //
+// [HarmonyPatch(typeof(CompArt), nameof(CompArt.CompInspectStringExtra))]
+// public static class CompArt_CompInspectStringExtra_Patch
+// {
+//     public static void Prefix(CompArt __instance)
+//     {
+// #if DEBUG
+//         LogTool.Debug($"Entering CompArt_CompInspectStringExtra_Patch for instance: {__instance}");
+// #endif
+//         if (!__instance.Active)
+//         {
+// #if DEBUG
+//             LogTool.Debug("Instance is not active. Exiting.");
+// #endif
+//             return;
+//         }
+// #if DEBUG
+//         LogTool.Debug("Instance is active.");
+// #endif
+
+//         if (__instance.parent.StyleSourcePrecept != null)
+//         {
+// #if DEBUG
+//             LogTool.Debug("StyleSourcePrecept is not null. Exiting.");
+// #endif
+//             return;
+//         }
+// #if DEBUG
+//         LogTool.Debug("StyleSourcePrecept is null.");
+// #endif
+
+//         var hashCode = __instance.GetHashCode();
+// #if DEBUG
+//         LogTool.Debug($"HashCode: {hashCode}");
+// #endif
+
+//         var itemStatus = UpdateItemDescriptions.GetStatus(hashCode);
+// #if DEBUG
+//         LogTool.Debug($"ItemStatus: {itemStatus}");
+// #endif
+
+//         switch (itemStatus)
+//         {
+//             case UpdateItemDescriptions.ItemStatus.Done:
+// #if DEBUG
+//                 LogTool.Debug("ItemStatus is Done.");
+// #endif
+//                 var value = UpdateItemDescriptions.GetValues(hashCode);
+//                 if (value.HasValue)
+//                 {
+// #if DEBUG
+//                     LogTool.Debug($"Value found: {value.Value.Title}");
+// #endif
+//                     __instance.titleInt = value.Value.Title;
+//                 }
+//                 else
+//                 {
+// #if DEBUG
+//                     LogTool.Debug("No value found.");
+// #endif
+//                 }
+//                 break;
+
+//             case UpdateItemDescriptions.ItemStatus.Working:
+// #if DEBUG
+//                 LogTool.Debug("ItemStatus is Working.");
+// #endif
+//                 goto default;
+
+//             case UpdateItemDescriptions.ItemStatus.NotDone:
+// #if DEBUG
+//                 LogTool.Debug("ItemStatus is NotDone.");
+// #endif
+//                 goto default;
+
+//             default:
+// #if DEBUG
+//                 LogTool.Debug("Default case. Setting null.");
+// #endif
+//                 // __instance.titleInt = GenText.CapitalizeAsTitle(
+//                 //     __instance.taleRef.GenerateText(
+//                 //         TextGenerationPurpose.ArtName,
+//                 //         __instance.Props.nameMaker
+//                 //     )
+//                 // );
+//                 if (__instance.taleRef == null)
+//                     __instance.titleInt = null;
+// #if DEBUG
+//                 LogTool.Debug($"titleInt set to {__instance.titleInt}.");
+// #endif
+//                 break;
+//         }
+
+// #if DEBUG
+//         LogTool.Debug("Exiting CompArt_CompInspectStringExtra_Patch.");
+// #endif
+//     }
+// }
+
+// Add hook to GenerateImageDescription to inject our description or add to our work queue
 //
-[StaticConstructorOnStartup]
 [HarmonyPatch(typeof(CompArt), nameof(CompArt.GenerateImageDescription))]
 public static class CompArt_GenerateImageDescription_Patch
 {
+    private static readonly object _workLock = new();
+
     public static void Postfix(CompArt __instance, ref TaggedString __result)
     {
-        LogTool.Message("Handling CompArt type");
+        if (UpdateServerStatus.serverStatusEnum != ServerManager.ServerStatus.Online)
+            return;
+
+#if DEBUG
+        LogTool.Debug("Handling CompArt type");
+#endif
+
+        // Determine if we have AI-Generated result for Thing already
         var hashCode = __instance.GetHashCode();
+#if DEBUG
+        LogTool.Debug($"HashCode: {hashCode}");
+#endif
 
-        // determine if we have AI-Generated result for Thing already
         var itemStatus = UpdateItemDescriptions.GetStatus(hashCode);
-        if (itemStatus == UpdateItemDescriptions.ItemStatus.NotDone)
-            goto work;
-        else if (itemStatus == UpdateItemDescriptions.ItemStatus.Done)
+#if DEBUG
+        LogTool.Debug($"ItemStatus: {itemStatus}");
+#endif
+
+        switch (itemStatus)
         {
-            var value = UpdateItemDescriptions.GetValues(hashCode);
-            if (value.HasValue)
-                (_, __result) = value.Value;
+            case UpdateItemDescriptions.ItemStatus.Done:
+                var value = UpdateItemDescriptions.GetValues(hashCode);
+                if (value.HasValue)
+                {
+#if DEBUG
+                    LogTool.Debug(
+                        $"Value found: Title = {value.Value.Title}, Description = {value.Value.Description}"
+                    );
+#endif
+                    __instance.titleInt = value.Value.Title;
+                    __result = (TaggedString)value.Value.Description;
+                    if (ITab_Art.cachedImageSource == __instance)
+                    {
+#if DEBUG
+                        LogTool.Debug("Updating cached image description");
+#endif
+                        ITab_Art.cachedImageDescription = (TaggedString)value.Value.Description;
+                    }
+                }
+                break;
+
+            case UpdateItemDescriptions.ItemStatus.NotDone:
+                lock (_workLock)
+                {
+#if DEBUG
+                    LogTool.Debug("ItemStatus is NotDone. Submitting job.");
+#endif
+                    // Send thing as job with relevant info
+                    // 1. send "Thing" from ScribeSaver.DebugOutputFor()
+                    // 2. send Title, Description from CompArt.GenerateTitle(), CompArt.GenerateImageDescription()
+                    var myDef = Scribe.saver.DebugOutputFor(__instance.parent);
+#if DEBUG
+                    LogTool.Debug($"myDef: {myDef}");
+#endif
+                    var description = __instance.taleRef.GenerateText(
+                        TextGenerationPurpose.ArtDescription,
+                        __instance.Props.descriptionMaker
+                    );
+#if DEBUG
+                    LogTool.Debug($"Generated description: {description}");
+#endif
+                    var title = GenText.CapitalizeAsTitle(
+                        __instance.taleRef.GenerateText(
+                            TextGenerationPurpose.ArtName,
+                            __instance.Props.nameMaker
+                        )
+                    );
+#if DEBUG
+                    LogTool.Debug($"Generated title: {title}");
+#endif
+                    UpdateItemDescriptions.SubmitJob(hashCode, myDef, title, description);
+#if DEBUG
+                    LogTool.Debug("Job submitted.");
+#endif
+                }
+                break;
+
+            case UpdateItemDescriptions.ItemStatus.Working:
+            default:
+#if DEBUG
+                LogTool.Debug("ItemStatus is Working or default case.");
+#endif
+                break;
         }
-        return;
-
-        work:
-        // send thing as job with relevant info
-        // 1. send "Thing" from ScribeSaver.DebugOutputFor()
-        // 2. send Title, Description from CompArt.GenerateTitle(), CompArt.GenerateImageDescription()
-        string myDef = Scribe.saver.DebugOutputFor(__instance.parent);
-        string description = __result;
-        string title = GenText.CapitalizeAsTitle(
-            __instance.taleRef.GenerateText(
-                TextGenerationPurpose.ArtName,
-                __instance.Props.nameMaker
-            )
-        );
-        UpdateItemDescriptions.SubmitJob(hashCode, myDef, title, description);
-
-        // use substring replacement to replace CompArt.GetDescriptionPart()
-        // of ThingWithComps.DescriptionFlavor with our new AI description
     }
 }
 
@@ -368,7 +516,7 @@ public static partial class GenerallTimeUpdates_Patch
         new()
         {
             { "ServerStatus", new UpdateTaskTime(() => 2.0f, UpdateServerStatus.Task, false) },
-            { "WorkItems", new UpdateTaskTime(() => 5.0f, UpdateItemDescriptions.Task, false) },
+            { "MonitorJobs", new UpdateTaskTime(() => 5.0f, MonitorJobStatus.Task, false) }
         };
 
     public static void Postfix()

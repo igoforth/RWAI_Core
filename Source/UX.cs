@@ -26,7 +26,7 @@ public static class UX
         string hexColor,
         string textLeft,
         string textRight = "",
-        string tooltip = null,
+        string? tooltip = null,
         float gap = 6f
     )
     {
@@ -93,7 +93,7 @@ public static class UX
         int max,
         Func<int, string> label,
         int logarithmic = 1,
-        string tooltip = null,
+        string? tooltip = null,
         GameFont? gameFont = null
     )
     {
@@ -130,7 +130,7 @@ public static class UX
         Func<float, string> label,
         float roundTo = -1f,
         int logarithmic = 1,
-        string tooltip = null
+        string? tooltip = null
     )
     {
         var input = logarithmic != 1 ? Mathf.Log(value, logarithmic) : value;
@@ -161,9 +161,9 @@ public static class UX
         ref float value,
         float leftValue,
         float rightValue,
-        string label,
+        string? label,
         float roundTo = -1f,
-        string tooltip = null,
+        string? tooltip = null,
         GameFont? gameFont = null
     )
     {
@@ -206,7 +206,7 @@ public static class UX
         return result;
     }
 
-    public static string Float(this int value, int decimals, string unit = null) =>
+    public static string Float(this int value, int decimals, string? unit = null) =>
         value.ToString("F" + decimals) + (unit == null ? "" : $" {unit}");
 
     public static int Milliseconds(this float f) => Mathf.FloorToInt(f * 1000);

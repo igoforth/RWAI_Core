@@ -30,7 +30,7 @@ public static class Tools
         public static readonly string priority = "Priority".TranslateSimple();
     }
 
-    public static string PlayerName()
+    public static string? PlayerName()
     {
         if (SteamManager.Initialized == false)
             return null;
@@ -169,7 +169,7 @@ public static class Tools
         return $"{pawn.Type()} '{pawn.LabelShortCap}'";
     }
 
-    public static string ToGameStringFromPOVWithType(this LogEntry entry, Pawn pawn)
+    public static string? ToGameStringFromPOVWithType(this LogEntry entry, Pawn pawn)
     {
         if (pawn == null)
             return null;

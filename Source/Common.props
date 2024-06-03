@@ -16,6 +16,7 @@
         <Company>Trojan</Company>
         <Authors>Ian Goforth</Authors>
         <Copyright>Copyright Ian Goforth</Copyright>
+        <Nullable>enable</Nullable>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -42,15 +43,17 @@
         <PackageReference Include="Contrib.Grpc.Core.M1" Version="2.46.6"
             GeneratePathProperty="true" />
         <PackageReference Include="Google.Protobuf" Version="3.27.0" />
-        <PackageReference Include="Grpc.Core" Version="2.46.6" />
-        <PackageReference Include="K4os.Compression.LZ4.Streams" Version="1.3.8" />
-        <PackageReference Include="Lib.Harmony" Version="2.3.3" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
+        <PackageReference Include="Grpc" Version="2.46.6" />
+        <PackageReference Include="K4os.Compression.LZ4" Version="1.3.8" />
+        <PackageReference Include="Lib.Harmony" Version="2.3.3" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
-        <PackageReference Include="Zetrith.Prepatcher" Version="1.2.0" />
     </ItemGroup>
 
     <ItemGroup Label="Development">
+        <PackageReference Include="Grpc.Tools" Version="2.64.0">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
         <PackageReference Include="ILRepack" Version="2.0.33" GeneratePathProperty="true">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
@@ -72,7 +75,6 @@
         </Reference>
         <!-- This is commented because it was necessary to fix job.cs for usage with Google.Protobuf
         and protobuf-net.Grpc -->
-        <!-- <Reference Include="System.Threading.Tasks.Extensions" Aliases="extensions" /> -->
         <Reference Include="netstandard">
             <Private>true</Private>
         </Reference>
@@ -104,28 +106,28 @@
 	</ItemGroup> -->
 
     <!-- This is the format that Grpc.Tools takes -->
-    <!-- <ItemGroup Label="Protobufs">
-		<Protobuf Include="..\Protos\*.proto" GrpcServices="Client" />
-	</ItemGroup> -->
-
-    <!-- This is the format that protobuf-net.BuildTools takes -->
     <ItemGroup Label="Protobufs">
-        <AdditionalFiles Include="..\Protos\*.proto" Services="Client" LangVersion="$(LangVersion)" />
+        <Protobuf Include="..\Protos\v3\job.proto" ProtoRoot="..\Protos" GrpcServices="client" />
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Remove="$(MSBuildProjectDirectory)\unused\**\*.cs" />
+        <Compile Remove="$(MSBuildProjectDirectory)\unused\*.cs" />
+        <Compile Remove="$(MSBuildProjectDirectory)\Job.cs" />
+        <Compile Remove="$(MSBuildProjectDirectory)\JobGrpc.cs" />
     </ItemGroup>
 
     <ItemGroup>
         <Publicize Include="Assembly-CSharp;0Harmony" />
         <DoNotPublicize
-            Include="0Harmony:System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute" />
+            Include="0Harmony:System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute;" />
     </ItemGroup>
 
     <Target Name="CopyPublicized" AfterTargets="Build">
         <!-- Create an item list of DLLs found in subdirectories of the specified path -->
-        <ItemGroup Condition="'$(Configuration)' == 'Release'">
+        <!-- <ItemGroup Condition="'$(Configuration)' == 'Release'">
+            <CustomAssemblies Include="$(IntermediateOutputPath)PublicizedAssemblies\**\*.dll" />
+        </ItemGroup> -->
+        <ItemGroup>
             <CustomAssemblies Include="$(IntermediateOutputPath)PublicizedAssemblies\**\*.dll" />
         </ItemGroup>
 
@@ -144,8 +146,7 @@
         <Message Text="Configuration: $(Configuration)" Importance="high" />
     </Target>
 
-    <Target Name="MoveNative" AfterTargets="CopyPublicized"
-        Condition="'$(Configuration)' == 'Release'">
+    <Target Name="MoveNative" AfterTargets="CopyPublicized">
         <PropertyGroup>
             <!-- Define the native libraries path -->
             <M1InputPath>$(PkgContrib_Grpc_Core_M1)\runtimes\osx-arm64\native\</M1InputPath>
@@ -174,9 +175,11 @@
         <Delete Files="@(NativeItems -> '$(OutputPath)%(Filename)%(Extension)')" />
     </Target>
 
-
     <Target Name="GatherInputs" AfterTargets="MoveNative">
-        <PropertyGroup Label="ILRepackOutput" Condition="'$(Configuration)' == 'Release'">
+        <!-- <PropertyGroup Label="ILRepackOutput" Condition="'$(Configuration)' == 'Release'">
+            <ILRepackOutputPath>..\..\..\$(RimWorldVersion)\Assemblies\</ILRepackOutputPath>
+        </PropertyGroup> -->
+        <PropertyGroup Label="ILRepackOutput">
             <ILRepackOutputPath>..\..\..\$(RimWorldVersion)\Assemblies\</ILRepackOutputPath>
         </PropertyGroup>
         <PropertyGroup Label="ILRepackItems">
@@ -188,13 +191,34 @@
             <ILRepackExtra Include="log;wildcards;parallel;target:library" />
             <ILRepackInput Include="$(OutputPath)\*.dll" />
             <ILRepackInput Remove="$(OutputPath)$(AssemblyName).dll" />
+            <!-- Types already included in K4os -->
+            <ILRepackInput Remove="$(OutputPath)System.Threading.Tasks.Extensions.dll" />
             <ILRepackLib Include="$(OutputPath)\shared" />
         </ItemGroup>
     </Target>
 
-    <Target Name="Repack" AfterTargets="GatherInputs"
+    <!-- <Target Name="Repack" AfterTargets="GatherInputs"
         Inputs="$(ILRepackExe);@(ILRepackInput);@(ILRepackLib);$(ILRepackOutputPath);$(ILRepackOutput)"
         Outputs="$(ILRepackOutput)" Condition="'$(Configuration)' == 'Release'">
+        <PropertyGroup Label="ILRepackArguments">
+            <ILRepackExtraArguments>@(ILRepackExtra->'/%(Identity)', ' ')</ILRepackExtraArguments>
+            <ILRepackLibrariesArgument>@(ILRepackLib->'/lib:"%(FullPath)"', ' ')</ILRepackLibrariesArgument>
+            <ILRepackOutArgument>/out:$(ILRepackOutput)</ILRepackOutArgument>
+            <ILRepackInArgument>@(ILRepackInput->'"%(FileName)%(Extension)"', ' ')</ILRepackInArgument>
+        </PropertyGroup>
+        <Exec
+            Command="$(ILRepackExe) $(ILRepackExtraArguments) $(ILRepackLibrariesArgument)
+    $(ILRepackOutArgument) $(ILRepackInputPrimary) $(ILRepackInArgument)"
+            WorkingDirectory="$(OutputPath)" ConsoleToMSBuild="True" />
+        <Copy Condition="Exists('$(ProjectRuntimeConfigFilePath)')"
+            SourceFiles="$(ProjectRuntimeConfigFilePath)"
+            DestinationFiles="$(ILRepackOutputPath)$(ProjectRuntimeConfigFileName)"
+            SkipUnchangedFiles="True" />
+    </Target> -->
+
+    <Target Name="Repack" AfterTargets="GatherInputs"
+        Inputs="$(ILRepackExe);@(ILRepackInput);@(ILRepackLib);$(ILRepackOutputPath);$(ILRepackOutput)"
+        Outputs="$(ILRepackOutput)">
         <PropertyGroup Label="ILRepackArguments">
             <ILRepackExtraArguments>@(ILRepackExtra->'/%(Identity)', ' ')</ILRepackExtraArguments>
             <ILRepackLibrariesArgument>@(ILRepackLib->'/lib:"%(FullPath)"', ' ')</ILRepackLibrariesArgument>
@@ -209,7 +233,6 @@
             DestinationFiles="$(ILRepackOutputPath)$(ProjectRuntimeConfigFileName)"
             SkipUnchangedFiles="True" />
     </Target>
-
     <Target Name="PostBuildAction" AfterTargets="Repack">
         <XmlPoke XmlInputPath="$(MSBuildProjectDirectory)\..\About\About.xml"
             Query="//ModMetaData/modVersion" Value="$(ModVersion)" />

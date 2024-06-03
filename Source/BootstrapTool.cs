@@ -1,3 +1,5 @@
+using UnityEngine.Networking;
+
 namespace AICore;
 
 using System.Collections.Generic;
@@ -9,7 +11,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
-using UnityEngine.Networking;
 
 public enum ContentType
 {
@@ -46,13 +47,13 @@ public sealed class BootstrapTool
     private static string newRelease = "_";
     private static OSPlatform? platform;
     private static Architecture? arch;
-    private static string shellBin;
-    private static string modPath;
-    private static string pythonPath;
-    private static string llamaPath;
-    private static TaskCompletionSource<bool> shouldUpdate;
-    private static TaskCompletionSource<bool> bootstrapDone;
-    private Process bootstrapProcess;
+    private static string? shellBin;
+    private static string? modPath;
+    private static string? pythonPath;
+    private static string? llamaPath;
+    private static TaskCompletionSource<bool>? shouldUpdate;
+    private static TaskCompletionSource<bool>? bootstrapDone;
+    private Process? bootstrapProcess;
 
     private BootstrapTool()
     {
@@ -111,6 +112,9 @@ public sealed class BootstrapTool
     // compare github api against pinned "./.version"
     private async void checkServerUpdate()
     {
+        if (shouldUpdate == null)
+            return;
+
         bool triggerUpdate = false;
         try
         {
@@ -201,6 +205,9 @@ public sealed class BootstrapTool
 
     private static void setGrpcOverrideLocation()
     {
+        if (platform == null || arch == null)
+            return;
+
         // determine correct lib
         var libBaseDir = Path.GetFullPath(
             Path.Combine(Assembly.GetCallingAssembly().Location, @"..\..\..\Libraries\")
@@ -351,11 +358,11 @@ public sealed class BootstrapTool
     private static async Task<string> Download(
         ContentType content,
         Uri fileUrl,
-        string userAgent = null,
-        string destination = null
+        string? userAgent = null,
+        string? destination = null
     )
     {
-        string filePath = null;
+        string? filePath = null;
         using var request = UnityWebRequest.Get(fileUrl);
         request.method = "GET";
 
@@ -401,7 +408,7 @@ public sealed class BootstrapTool
             throw new Exception(request.error);
 
         if (downloadHandler is DownloadHandlerFile)
-            return default;
+            return "";
 
         return await Main.Perform(() =>
         {
@@ -412,6 +419,9 @@ public sealed class BootstrapTool
 
     public async void BootstrapAsync()
     {
+        if (bootstrapDone == null)
+            return;
+
         var bootstrapUrl = new Uri(bootstrapString);
         var pythonUrl = new Uri(pythonString);
         var binPath = Directory.GetParent(pythonPath).FullName;
@@ -543,6 +553,9 @@ public sealed class BootstrapTool
     // Handle Exited event and display process information.
     private void ProcessExited(object sender, EventArgs e)
     {
+        if (bootstrapProcess == null || bootstrapDone == null)
+            return;
+
 #if DEBUG
         LogTool.Debug($"Exit time    : {bootstrapProcess.ExitTime}");
         LogTool.Debug($"Exit code    : {bootstrapProcess.ExitCode}");

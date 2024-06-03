@@ -19,10 +19,10 @@ public class ServerManager : MonoBehaviour
     private static readonly PlatformID platform = Environment.OSVersion.Platform;
     private static readonly string shellBin =
         platform == PlatformID.Win32NT ? "powershell.exe" : "sh";
-    private static string serverArgs = "bin/python AIServer.pyz";
-    private static string modPath;
-    private static ServerManager instance;
-    private Process serverProcess;
+    private const string serverArgs = "bin/python AIServer.pyz";
+    private static string? modPath;
+    private static ServerManager? instance;
+    private Process? serverProcess;
     private static readonly object lockObject = new();
 
     // private FileSink logSink;
@@ -99,44 +99,43 @@ public class ServerManager : MonoBehaviour
         {
             UpdateServerStatus(ServerStatus.Busy);
 
-            var serverPSI = new ProcessStartInfo
+            serverProcess = new Process
             {
-                FileName = shellBin,
-                Arguments = shellArgs,
-                WorkingDirectory = modPath,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                StandardErrorEncoding = Encoding.UTF8,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            serverProcess = new Process { StartInfo = serverPSI };
-            serverProcess.EnableRaisingEvents = true;
-            serverProcess.Exited += new EventHandler(ProcessExited);
-
-            serverProcess.OutputDataReceived += (sender, args) =>
-            {
-                if (!string.IsNullOrEmpty(args.Data))
+                EnableRaisingEvents = true,
+                StartInfo =
                 {
-                    // LogTool.Message(args.Data, "ServerSink");
-                    LogTool.Message(args.Data);
+                    FileName = shellBin,
+                    Arguments = shellArgs,
+                    WorkingDirectory = modPath,
+                    RedirectStandardInput = true,
+                    RedirectStandardError = true,
+                    StandardErrorEncoding = Encoding.UTF8,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
                 }
             };
-
+            serverProcess.Exited += new EventHandler(ProcessExited);
             serverProcess.ErrorDataReceived += (sender, args) =>
             {
                 if (!string.IsNullOrEmpty(args.Data))
                 {
                     // LogTool.Error(args.Data, "ServerSink");
-                    LogTool.Message(args.Data);
+                    LogTool.Message(args.Data); // currently server stdout goes to stderr... idk why
                 }
             };
 
-            UpdateServerStatus(ServerStatus.Online);
-            LogTool.Message("AI Server started! OMG it actually started, whattttttt");
+#if DEBUG
+            serverProcess.StartInfo.RedirectStandardOutput = true;
+            serverProcess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
+            serverProcess.OutputDataReceived += (sender, args) =>
+            {
+                if (!string.IsNullOrEmpty(args.Data))
+                {
+                    // LogTool.Debug(args.Data, "ServerSink");
+                    LogTool.Debug(args.Data);
+                }
+            };
+#endif
         }
         catch (Exception ex)
         {
@@ -149,6 +148,8 @@ public class ServerManager : MonoBehaviour
         Tools.SafeAsync(async () =>
         {
             serverProcess.Start();
+            UpdateServerStatus(ServerStatus.Online);
+            LogTool.Message("AI Server started! OMG it actually started, whattttttt");
 
             // Read the output stream first and then wait.
             serverProcess.BeginOutputReadLine();
@@ -166,6 +167,9 @@ public class ServerManager : MonoBehaviour
     // Handle Exited event and display process information.
     private void ProcessExited(object sender, EventArgs e)
     {
+        if (serverProcess == null)
+            return;
+
 #if DEBUG
         LogTool.Debug($"Exit time    : {serverProcess.ExitTime}");
         LogTool.Debug($"Exit code    : {serverProcess.ExitCode}");

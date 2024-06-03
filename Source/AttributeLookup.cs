@@ -1,8 +1,9 @@
+using System.Xml;
+
 namespace AICore;
 
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Xml;
 
 // var xml = @"<root><5GSID _name='5GSID'><child _name='child'/></5GSID><GUTI _name='GUTI'/></root>";
 // var xmlDoc = new XmlDocument();
@@ -45,7 +46,7 @@ public class AttributeLookup
         _pathNodes[GetPathKey(key, path)] = node;
     }
 
-    public XmlNode FindValue(XmlNode msg, string key)
+    public XmlNode? FindValue(XmlNode msg, string key)
     {
         // First try to find the value using known paths
         var value = TryKnownPaths(msg, key);
@@ -58,7 +59,7 @@ public class AttributeLookup
         return value;
     }
 
-    private XmlNode TryKnownPaths(XmlNode msg, string key)
+    private XmlNode? TryKnownPaths(XmlNode msg, string key)
     {
 #if DEBUG
         LogTool.Debug($"Trying known paths for {key}");
@@ -75,6 +76,8 @@ public class AttributeLookup
                 LogTool.Debug($"Trying path {string.Join(", ", path)}");
 #endif
                 var value = PathSearch(msg, path);
+                if (value == null)
+                    continue;
                 if (Validate(value, k))
                 {
                     // Move this path to the front
@@ -90,7 +93,7 @@ public class AttributeLookup
         return null; // Return null if no valid value was found
     }
 
-    private XmlNode PathSearch(XmlNode msg, List<int> path)
+    private XmlNode? PathSearch(XmlNode msg, List<int> path)
     {
         foreach (var step in path)
         {
@@ -121,7 +124,7 @@ public class AttributeLookup
         return name == key;
     }
 
-    private XmlNode AttributeLookupRecursive(XmlNode msg, string key)
+    private XmlNode? AttributeLookupRecursive(XmlNode msg, string key)
     {
         var stopwatch = Stopwatch.StartNew();
         var path = new List<int>();
@@ -142,7 +145,7 @@ public class AttributeLookup
         return result;
     }
 
-    private XmlNode Lookup(XmlNode msg, string key, List<int> path)
+    private XmlNode? Lookup(XmlNode msg, string key, List<int> path)
     {
         if (Validate(msg, key))
         {

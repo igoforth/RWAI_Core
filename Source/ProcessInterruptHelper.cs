@@ -58,7 +58,7 @@ public class WindowsProcessHelper
     private static extern bool FreeConsole();
 
     [DllImport("kernel32.dll")]
-    private static extern bool SetConsoleCtrlHandler(ConsoleCtrlDelegate handlerRoutine, bool add);
+    private static extern bool SetConsoleCtrlHandler(ConsoleCtrlDelegate? handlerRoutine, bool add);
 
     private delegate bool ConsoleCtrlDelegate(uint ctrlType);
 

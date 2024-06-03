@@ -7,9 +7,9 @@ public static class LogTool
 {
     class Msg
     {
-        internal string txt;
+        internal required string txt;
         internal int level;
-        internal string sinkName;
+        internal string? sinkName;
     }
 
     private static readonly ConcurrentQueue<Msg> log = new();
@@ -25,7 +25,7 @@ public static class LogTool
         sinks.Remove(sink);
     }
 
-    public static void Message(string txt, string sinkName = null)
+    public static void Message(string txt, string? sinkName = null)
     {
         log.Enqueue(
             new Msg()
@@ -37,7 +37,7 @@ public static class LogTool
         );
     }
 
-    public static void Warning(string txt, string sinkName = null)
+    public static void Warning(string txt, string? sinkName = null)
     {
         log.Enqueue(
             new Msg()
@@ -49,7 +49,7 @@ public static class LogTool
         );
     }
 
-    public static void Error(string txt, string sinkName = null)
+    public static void Error(string txt, string? sinkName = null)
     {
         log.Enqueue(
             new Msg()
@@ -62,7 +62,7 @@ public static class LogTool
     }
 
 #if DEBUG
-    public static void Debug(string txt, string sinkName = null)
+    public static void Debug(string txt, string? sinkName = null)
     {
         log.Enqueue(
             new Msg()

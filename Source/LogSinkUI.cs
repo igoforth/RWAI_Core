@@ -1,15 +1,16 @@
-namespace AICore;
-
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine.UI;
 
+namespace AICore;
+
+using System.Collections.Generic;
+
 public class UISink : ISink
 {
-    private static UISink instance;
-    private List<string> logEntries = new List<string>();
-    private TextMeshProUGUI logTextUI;
-    private ScrollRect scrollRect;
+    private static UISink? instance;
+    private readonly List<string> logEntries = [];
+    private TextMeshProUGUI? logTextUI;
+    private ScrollRect? scrollRect;
     private string currentLine = "";
     public string Name => "UISink";
 
@@ -46,7 +47,7 @@ public class UISink : ISink
 
     private void UpdateUIText(string message)
     {
-        if (logTextUI != null)
+        if (logTextUI != null && scrollRect != null)
         {
             logTextUI.text = string.Join("\n", logEntries);
             logTextUI.text = message;

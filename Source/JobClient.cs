@@ -1,50 +1,24 @@
+using Steamworks;
+using Verse.Steam;
+
 namespace AICore;
 
-using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
-//   public static HelloReply Greet(string greeting)
-//   {
-//     const int Port = 30051;
-
-//     Server server = new Server
-//     {
-//       Services = { Greeter.BindService(new GreeterImpl()) },
-//       Ports = { new ServerPort("localhost", Port, ServerCredentials.Insecure) }
-//     };
-//     server.Start();
-
-//     Channel channel = new Channel("127.0.0.1:30051", ChannelCredentials.Insecure);
-
-//     var client = new Greeter.GreeterClient(channel);
-
-//     var reply = client.SayHello(new HelloRequest { Name = greeting });
-
-//     channel.ShutdownAsync().Wait();
-
-//     server.ShutdownAsync().Wait();
-
-//     return reply;
-//   }
-
-//   class GreeterImpl : Greeter.GreeterBase
-//   {
-//     // Server side handler of the SayHello RPC
-//     public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
-//     {
-//       return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
-//     }
-//   }
-
-public class JobClient
+public class JobClient : IDisposable
 {
-    private JobManager.JobManagerClient _client;
-    private static Channel _channel;
-    private static readonly ConcurrentBag<JobTask> _taskList = new ConcurrentBag<JobTask>();
-    private static readonly Lazy<JobClient> _instance = new Lazy<JobClient>(() => new JobClient());
+    private JobManager.JobManagerClient? _client;
+    private Channel? _channel;
+    private static int jobCounter = 0;
+    private static readonly ConcurrentBag<JobTask> _taskList = new();
+    private static readonly Lazy<JobClient> _instance = new(() => new JobClient());
+    private static readonly SemaphoreSlim _monitorActive = new(1, 1);
+    private bool _disposed = false;
 
     private JobClient() { }
 
@@ -52,17 +26,47 @@ public class JobClient
 
     public void Start(string ip, int port)
     {
-        _channel = new Channel($"{ip}:{port}", ChannelCredentials.Insecure);
+        var address = $"{ip}:{port}";
+        // var channelOptions = new List<ChannelOption>
+        // {
+        //     new(ChannelOptions.MaxSendMessageLength, int.MaxValue),
+        //     new(ChannelOptions.MaxReceiveMessageLength, int.MaxValue),
+        //     new("grpc.keepalive_time_ms", 10000), // 10 seconds
+        //     new("grpc.keepalive_timeout_ms", 5000), // 5 seconds
+        //     new("grpc.keepalive_permit_without_calls", 1), // Keep alive even if there are no active calls
+        //     new("grpc.http2.min_time_between_pings_ms", 10000), // Minimum time between pings
+        //     new("grpc.http2.max_pings_without_data", 0), // Unlimited pings
+        //     new("grpc.http2.max_ping_strikes", 0) // Unlimited ping failures
+        // };
+
+        // _channel = new Channel(address, ChannelCredentials.Insecure, channelOptions);
+        _channel = new Channel(address, ChannelCredentials.Insecure);
         _client = new JobManager.JobManagerClient(_channel);
     }
 
-    public void AddJob(JobRequest jobRequest, Action<JobResponse> callback)
+    public void AddJob(JobRequest jobRequest, Func<JobResponse, Task> callback)
     {
+        if (_channel == null || _client == null)
+            return;
+
+        if (jobRequest.JobId == 0)
+        {
+            jobRequest.JobId = (uint)jobCounter;
+            Interlocked.Increment(ref jobCounter);
+        }
+
+        jobRequest.Time = Timestamp.FromDateTime(DateTime.UtcNow);
+        jobRequest.Language = GetLanguage();
+
         try
         {
-            var jobCall = _client.JobServiceAsync(jobRequest);
+            var callOptions = new CallOptions(deadline: DateTime.UtcNow.AddMinutes(30));
+            var jobCall = _client.JobServiceAsync(jobRequest, callOptions);
             var jobTask = new JobTask(jobCall, callback);
             _taskList.Add(jobTask);
+#if DEBUG
+            LogTool.Debug("JobClient sent job!");
+#endif
         }
         catch (Exception ex)
         {
@@ -70,37 +74,107 @@ public class JobClient
         }
     }
 
-    public async Task ProcessJobsAsync()
+    public async Task MonitorJobsAsync()
     {
-        while (!_taskList.IsEmpty)
-        {
-            var jobTasks = _taskList.ToArray();
-            var completedTask = await Task.WhenAny(jobTasks.Select(t => t.AsyncCall.ResponseAsync));
-            var completedJobTask = jobTasks.First(t => t.AsyncCall.ResponseAsync == completedTask);
+        if (_channel == null || _client == null)
+            return;
+        if (_monitorActive.CurrentCount == 0)
+            return;
 
-            try
+        await _monitorActive.WaitAsync();
+        try
+        {
+            while (!_taskList.IsEmpty)
             {
-                var jobResponse = await completedJobTask.AsyncCall.ResponseAsync;
-                completedJobTask.Callback(jobResponse);
-            }
-            catch (Exception ex)
-            {
-                LogTool.Error($"Error processing job: {ex.Message}");
-            }
-            finally
-            {
-                _taskList.TryTake(out var _); // Remove the completed task
+                var jobTasks = _taskList.ToArray();
+                var completedTask = await Task.WhenAny(
+                    jobTasks.Select(t => t.AsyncCall.ResponseAsync)
+                );
+                var completedJobTask = jobTasks.FirstOrDefault(t =>
+                    t.AsyncCall.ResponseAsync == completedTask
+                );
+
+                if (completedJobTask == null)
+                    continue;
+
+                try
+                {
+                    var jobResponse = await completedJobTask.AsyncCall.ResponseAsync;
+                    await completedJobTask.Callback(jobResponse);
+                }
+                catch (Exception ex)
+                {
+                    LogTool.Error($"Error processing job: {ex.Message}");
+                }
+                finally
+                {
+                    _taskList.TryTake(out var _); // Remove the completed task
+                }
             }
         }
+        finally
+        {
+            _monitorActive.Release();
+        }
+    }
+
+    private static SupportedLanguage GetLanguage()
+    {
+        if (
+            LanguageDatabase.activeLanguage?.folderName is string folderLang
+            && LanguageMapping.LanguageMap.TryGetValue(folderLang, out var mappedLang1)
+        )
+            return mappedLang1;
+
+        if (
+            SteamManager.Initialized
+            && SteamApps.GetCurrentGameLanguage().CapitalizeFirst() is string steamLang
+            && LanguageMapping.LanguageMap.TryGetValue(steamLang, out var mappedLang2)
+        )
+            return mappedLang2;
+
+        if (
+            Application.systemLanguage.ToStringSafe() is string appLang
+            && LanguageMapping.LanguageMap.TryGetValue(appLang, out var mappedLang3)
+        )
+            return mappedLang3;
+
+        return SupportedLanguage.English;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            _channel?.ShutdownAsync().Wait();
+            _channel = null;
+            _client = null;
+        }
+
+        _disposed = true;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~JobClient()
+    {
+        Dispose(false);
     }
 }
 
 public class JobTask
 {
     public AsyncUnaryCall<JobResponse> AsyncCall { get; }
-    public Action<JobResponse> Callback { get; }
+    public Func<JobResponse, Task> Callback { get; }
 
-    public JobTask(AsyncUnaryCall<JobResponse> asyncCall, Action<JobResponse> callback)
+    public JobTask(AsyncUnaryCall<JobResponse> asyncCall, Func<JobResponse, Task> callback)
     {
         AsyncCall = asyncCall;
         Callback = callback;

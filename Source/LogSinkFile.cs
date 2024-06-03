@@ -6,10 +6,10 @@ using Newtonsoft.Json;
 public class FileSink : ISink
 {
     public string Name => "FileSink";
-    private static FileSink instance;
-    private static string modPath;
-    private static string serverLogPath;
-    private static StreamWriter streamWriter;
+    private static FileSink? instance;
+    private static string? modPath;
+    private static string? serverLogPath;
+    private static StreamWriter? streamWriter;
 
     private FileSink()
     {
@@ -47,8 +47,11 @@ public class FileSink : ISink
         }
     }
 
-    public void LogMessage(string message, int level)
+    private void LogMessage(string message, int level)
     {
+        if (streamWriter == null)
+            return;
+
         var logEntry = new
         {
             Timestamp = DateTime.UtcNow,

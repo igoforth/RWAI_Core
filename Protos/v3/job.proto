@@ -6,6 +6,36 @@ package job;
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
+enum SupportedLanguage {
+  ARABIC = 0;
+  CHINESE_SIMPLIFIED = 1;
+  CHINESE_TRADITIONAL = 2;
+  CZECH = 3;
+  DANISH = 4;
+  DUTCH = 5;
+  ENGLISH = 6;
+  ESTONIAN = 7;
+  FINNISH = 8;
+  FRENCH = 9;
+  GERMAN = 10;
+  HUNGARIAN = 11;
+  ITALIAN = 12;
+  JAPANESE = 13;
+  KOREAN = 14;
+  NORWEGIAN = 15;
+  POLISH = 16;
+  PORTUGUESE = 17;
+  PORTUGUESE_BRAZILIAN = 18;
+  ROMANIAN = 19;
+  RUSSIAN = 20;
+  SLOVAK = 21;
+  SPANISH = 22;
+  SPANISH_LATIN = 23;
+  SWEDISH = 24;
+  TURKISH = 25;
+  UKRAINIAN = 26;
+}
+
 service JobManager {
   rpc JobService (JobRequest) returns (JobResponse);
 }
@@ -13,8 +43,8 @@ service JobManager {
 // Request an AI job
 message JobRequest {
   uint32 job_id = 1; // Client may specify or server may generate and return it
-  string job_type = 2; // Type of job, e.g., "description_generation"
-  google.protobuf.Timestamp time = 3;
+  google.protobuf.Timestamp time = 2;
+  SupportedLanguage language = 3;
 
   // Oneof for different job types
   oneof job_payload {
@@ -23,14 +53,19 @@ message JobRequest {
   }
 
   // Nested messages for different job types
-  message ArtDescriptionJob { string input = 1; }
+  message ArtDescriptionJob {
+    int32 hash_code = 1;
+    string xml_def = 2;
+    string title = 3;
+    string description = 4;
+  }
 }
 
 // Receive AI response
 message JobResponse {
   uint32 job_id = 1; // Echo or newly assigned job ID
-  string job_type = 2; // Type of job returned
-  google.protobuf.Duration duration = 3;
+  google.protobuf.Duration duration = 2;
+  SupportedLanguage language = 3;
 
   // Oneof for different job response types
   oneof job_result {
@@ -40,7 +75,9 @@ message JobResponse {
 
   // Nested messages for different job types
   message ArtDescriptionResponse {
-    string title = 1;
-    string description = 2;
+    int32 hash_code = 1;
+    string xml_def = 2;
+    string title = 3;
+    string description = 4;
   }
 }
