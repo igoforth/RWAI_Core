@@ -1,7 +1,8 @@
-namespace AICore;
-
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+
+namespace AICore;
 
 public static class ProcessInterruptHelper
 {

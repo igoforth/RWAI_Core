@@ -17,8 +17,11 @@
         <Authors>Ian Goforth</Authors>
         <Copyright>Copyright Ian Goforth</Copyright>
         <Nullable>enable</Nullable>
+        <DebugType>embedded</DebugType>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+        <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
         <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
@@ -44,9 +47,9 @@
             GeneratePathProperty="true" />
         <PackageReference Include="Google.Protobuf" Version="3.27.0" />
         <PackageReference Include="Grpc" Version="2.46.6" />
-        <PackageReference Include="K4os.Compression.LZ4" Version="1.3.8" />
         <PackageReference Include="Lib.Harmony" Version="2.3.3" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
+        <PackageReference Include="ImpromptuNinjas.ZStd" Version="1.4.5.5" />
     </ItemGroup>
 
     <ItemGroup Label="Development">
@@ -70,11 +73,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- <ProjectReference Include="Loader\Loader.csproj" /> -->
+    </ItemGroup>
+
+    <ItemGroup>
         <Reference Include="Newtonsoft.Json">
             <HintPath>..\External\Newtonsoft.Json.dll</HintPath>
         </Reference>
-        <!-- This is commented because it was necessary to fix job.cs for usage with Google.Protobuf
-        and protobuf-net.Grpc -->
         <Reference Include="netstandard">
             <Private>true</Private>
         </Reference>
@@ -111,9 +116,23 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Remove="$(MSBuildProjectDirectory)\unused\*.cs" />
-        <Compile Remove="$(MSBuildProjectDirectory)\Job.cs" />
-        <Compile Remove="$(MSBuildProjectDirectory)\JobGrpc.cs" />
+        <Compile Include="BootstrapTool.cs" />
+        <Compile Include="CompressedDictionary.cs" />
+        <Compile Include="Defs.cs" />
+        <Compile Include="JobClient.cs" />
+        <Compile Include="LanguageMapping.cs" />
+        <Compile Include="LogSinkFile.cs" />
+        <Compile Include="LogSinkUI.cs" />
+        <Compile Include="LogTool.cs" />
+        <Compile Include="Main.cs" />
+        <Compile Include="Patches.cs" />
+        <Compile Include="ProcessInterruptHelper.cs" />
+        <Compile Include="ServerManager.cs" />
+        <Compile Include="Settings.cs" />
+        <Compile Include="Tasks.cs" />
+        <Compile Include="Tools.cs" />
+        <Compile Include="UpdateTask.cs" />
+        <Compile Include="UX.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -123,20 +142,14 @@
     </ItemGroup>
 
     <Target Name="CopyPublicized" AfterTargets="Build">
-        <!-- Create an item list of DLLs found in subdirectories of the specified path -->
-        <!-- <ItemGroup Condition="'$(Configuration)' == 'Release'">
-            <CustomAssemblies Include="$(IntermediateOutputPath)PublicizedAssemblies\**\*.dll" />
-        </ItemGroup> -->
         <ItemGroup>
             <CustomAssemblies Include="$(IntermediateOutputPath)PublicizedAssemblies\**\*.dll" />
         </ItemGroup>
 
-        <!-- Copy all collected DLLs to the destination folder -->
         <Copy SourceFiles="@(CustomAssemblies)" DestinationFolder="$(OutputPath)\shared"
             SkipUnchangedFiles="true" />
     </Target>
 
-    <!-- Target to check configuration -->
     <Target Name="CheckConfiguration" BeforeTargets="Build">
         <PropertyGroup>
             <RimWorldVersion>$(MSBuildProjectName)</RimWorldVersion>
@@ -148,37 +161,29 @@
 
     <Target Name="MoveNative" AfterTargets="CopyPublicized">
         <PropertyGroup>
-            <!-- Define the native libraries path -->
             <M1InputPath>$(PkgContrib_Grpc_Core_M1)\runtimes\osx-arm64\native\</M1InputPath>
             <LibOutputPath>..\Libraries\</LibOutputPath>
         </PropertyGroup>
 
         <ItemGroup>
-            <!-- Define the items to be moved -->
             <ArmItems Include="libgrpc_csharp_ext.arm64.dylib" />
             <NativeItems
-                Include="grpc_csharp_ext.x64.dll;grpc_csharp_ext.x86.dll;libgrpc_csharp_ext.x64.dylib;libgrpc_csharp_ext.x64.so" />
+                Include="grpc_csharp_ext.x64.dll;grpc_csharp_ext.x86.dll;libgrpc_csharp_ext.x64.dylib;libgrpc_csharp_ext.x64.so"
+            />
         </ItemGroup>
 
-        <!-- Ensure the output directory exists -->
         <MakeDir Directories="$(LibOutputPath)" Condition="!Exists('$(LibOutputPath)')" />
 
-        <!-- Copy ARM-specific item to LibOutputPath -->
         <Copy SourceFiles="@(ArmItems -> '$(M1InputPath)%(Filename)%(Extension)')"
             DestinationFolder="$(LibOutputPath)" />
 
-        <!-- Copy Native items to LibOutputPath -->
         <Copy SourceFiles="@(NativeItems -> '$(OutputPath)%(Filename)%(Extension)')"
             DestinationFolder="$(LibOutputPath)" />
 
-        <!-- Delete Native items from OutputPath after copying -->
         <Delete Files="@(NativeItems -> '$(OutputPath)%(Filename)%(Extension)')" />
     </Target>
 
     <Target Name="GatherInputs" AfterTargets="MoveNative">
-        <!-- <PropertyGroup Label="ILRepackOutput" Condition="'$(Configuration)' == 'Release'">
-            <ILRepackOutputPath>..\..\..\$(RimWorldVersion)\Assemblies\</ILRepackOutputPath>
-        </PropertyGroup> -->
         <PropertyGroup Label="ILRepackOutput">
             <ILRepackOutputPath>..\..\..\$(RimWorldVersion)\Assemblies\</ILRepackOutputPath>
         </PropertyGroup>
@@ -191,30 +196,11 @@
             <ILRepackExtra Include="log;wildcards;parallel;target:library" />
             <ILRepackInput Include="$(OutputPath)\*.dll" />
             <ILRepackInput Remove="$(OutputPath)$(AssemblyName).dll" />
-            <!-- Types already included in K4os -->
             <ILRepackInput Remove="$(OutputPath)System.Threading.Tasks.Extensions.dll" />
-            <ILRepackLib Include="$(OutputPath)\shared" />
+            <ILRepackLib
+                Include="$(OutputPath)\shared" />
         </ItemGroup>
     </Target>
-
-    <!-- <Target Name="Repack" AfterTargets="GatherInputs"
-        Inputs="$(ILRepackExe);@(ILRepackInput);@(ILRepackLib);$(ILRepackOutputPath);$(ILRepackOutput)"
-        Outputs="$(ILRepackOutput)" Condition="'$(Configuration)' == 'Release'">
-        <PropertyGroup Label="ILRepackArguments">
-            <ILRepackExtraArguments>@(ILRepackExtra->'/%(Identity)', ' ')</ILRepackExtraArguments>
-            <ILRepackLibrariesArgument>@(ILRepackLib->'/lib:"%(FullPath)"', ' ')</ILRepackLibrariesArgument>
-            <ILRepackOutArgument>/out:$(ILRepackOutput)</ILRepackOutArgument>
-            <ILRepackInArgument>@(ILRepackInput->'"%(FileName)%(Extension)"', ' ')</ILRepackInArgument>
-        </PropertyGroup>
-        <Exec
-            Command="$(ILRepackExe) $(ILRepackExtraArguments) $(ILRepackLibrariesArgument)
-    $(ILRepackOutArgument) $(ILRepackInputPrimary) $(ILRepackInArgument)"
-            WorkingDirectory="$(OutputPath)" ConsoleToMSBuild="True" />
-        <Copy Condition="Exists('$(ProjectRuntimeConfigFilePath)')"
-            SourceFiles="$(ProjectRuntimeConfigFilePath)"
-            DestinationFiles="$(ILRepackOutputPath)$(ProjectRuntimeConfigFileName)"
-            SkipUnchangedFiles="True" />
-    </Target> -->
 
     <Target Name="Repack" AfterTargets="GatherInputs"
         Inputs="$(ILRepackExe);@(ILRepackInput);@(ILRepackLib);$(ILRepackOutputPath);$(ILRepackOutput)"
@@ -228,18 +214,25 @@
         <Exec
             Command="$(ILRepackExe) $(ILRepackExtraArguments) $(ILRepackLibrariesArgument) $(ILRepackOutArgument) $(ILRepackInputPrimary) $(ILRepackInArgument)"
             WorkingDirectory="$(OutputPath)" ConsoleToMSBuild="True" />
+
+    </Target>
+
+    <Target Name="CopyDestination" AfterTargets="Repack">
         <Copy Condition="Exists('$(ProjectRuntimeConfigFilePath)')"
             SourceFiles="$(ProjectRuntimeConfigFilePath)"
             DestinationFiles="$(ILRepackOutputPath)$(ProjectRuntimeConfigFileName)"
             SkipUnchangedFiles="True" />
     </Target>
-    <Target Name="PostBuildAction" AfterTargets="Repack">
+
+    <Target Name="PostBuildAction" AfterTargets="CopyDestination">
         <XmlPoke XmlInputPath="$(MSBuildProjectDirectory)\..\About\About.xml"
             Query="//ModMetaData/modVersion" Value="$(ModVersion)" />
         <Message Text="New version: $(ModVersion)" />
     </Target>
 
-    <Target Name="CopyToRimWorld" AfterTargets="PostBuildAction" Condition="'$(MOD_PATH)' != ''">
+    <Target Name="CopyToRimWorld" AfterTargets="PostBuildAction"
+        Condition="'$(MOD_PATH)' !=
+    ''">
         <RemoveDir Directories="$(MOD_PATH)\$(ModFileName)" />
         <ItemGroup>
             <CopyAbout Include="..\About\**" />

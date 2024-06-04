@@ -1,13 +1,14 @@
-using HarmonyLib;
-
-namespace AICore;
-
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Policy;
 using System.Threading.Tasks;
+using HarmonyLib;
+using RimWorld;
+using Verse;
+
+namespace AICore;
 
 // updates the Colony Setting, including weather, date, name of colony, etc
 // used to update the record keeper, which in turn is used by the AI as part of game state

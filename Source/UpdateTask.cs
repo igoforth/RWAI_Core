@@ -1,3 +1,7 @@
+using System;
+using UnityEngine;
+using Verse;
+
 namespace AICore;
 
 // for scheduling a recurring action
@@ -19,16 +23,11 @@ public struct UpdateTaskTick(Func<int> updateIntervalFunc, Action action, bool s
 // - action is executed at each scheduled interval
 // - startImmediately to indicate the action will be executed as soon as the task starts
 //
-public struct UpdateTaskTime
+public struct UpdateTaskTime(Func<float> updateIntervalFunc, Action action, bool startImmediately)
 {
-    public float nextUpdateTime;
-    public Func<float> updateIntervalFunc;
-    public Action action;
-
-    public UpdateTaskTime(Func<float> updateIntervalFunc, Action action, bool startImmediately)
-    {
-        this.updateIntervalFunc = updateIntervalFunc;
-        this.action = action;
-        this.nextUpdateTime = startImmediately ? Time.realtimeSinceStartup : Time.realtimeSinceStartup + updateIntervalFunc();
-    }
+    public float nextUpdateTime = startImmediately
+        ? Time.realtimeSinceStartup
+        : Time.realtimeSinceStartup + updateIntervalFunc();
+    public Func<float> updateIntervalFunc = updateIntervalFunc;
+    public Action action = action;
 }

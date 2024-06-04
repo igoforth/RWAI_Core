@@ -1,7 +1,9 @@
-namespace AICore;
-
+using System;
 using System.IO;
 using Newtonsoft.Json;
+using Verse;
+
+namespace AICore;
 
 public class FileSink : ISink
 {

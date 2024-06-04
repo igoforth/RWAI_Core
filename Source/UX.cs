@@ -1,3 +1,7 @@
+using System;
+using UnityEngine;
+using Verse;
+
 namespace AICore;
 
 // using static AICore.Dialog_Help;

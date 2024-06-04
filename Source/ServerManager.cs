@@ -3,14 +3,16 @@
 // sends gRPC to ai server to get generation
 // updates the server status
 //
-namespace AICore;
-
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
+using Verse;
 
-public class ServerManager : MonoBehaviour
+namespace AICore;
+
+public class ServerManager
 {
     public static CancellationTokenSource onQuit = new();
     public static bool Running => onQuit.IsCancellationRequested == false;

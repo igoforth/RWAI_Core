@@ -1,3 +1,6 @@
+using UnityEngine;
+using Verse;
+
 namespace AICore;
 
 public partial class AICoreSettings : ModSettings

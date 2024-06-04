@@ -1,12 +1,14 @@
+using System;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using RimWorld;
 using Steamworks;
+using Verse;
 using Verse.AI;
 using Verse.Steam;
 
 namespace AICore;
-
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 public static class Tools
 {

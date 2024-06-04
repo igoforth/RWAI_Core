@@ -1,6 +1,6 @@
-namespace AICore;
-
 using System.Collections.Generic;
+
+namespace AICore;
 
 // private static readonly List<string> SupportedAutoSelectLanguages = new List<string> {
 // "Arabic", "ChineseSimplified", "ChineseTraditional", "Czech", "Danish", "Dutch", "English", "Estonian", "Finnish", "French", "German", "Hungarian", "Italian", "Japanese", "Korean", "Norwegian", "Polish", "Portuguese", "PortugueseBrazilian", "Romanian", "Russian", "Slovak", "Spanish", "SpanishLatin", "Swedish", "Turkish", "Ukrainian"

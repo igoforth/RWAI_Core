@@ -1,7 +1,4 @@
-using UnityEngine.Networking;
-
-namespace AICore;
-
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,6 +8,11 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
+using UnityEngine.Networking;
+using Verse;
+
+namespace AICore;
 
 public enum ContentType
 {
@@ -35,13 +37,13 @@ public sealed class BootstrapTool
     public static bool isConfigured = true;
     public static Action preInit = () =>
     {
-        getSystemInfo();
-        setGrpcOverrideLocation();
+        GetSystemInfo();
+        // SetGrpcOverrideLocation();
     };
     private const string releaseString =
         "https://api.github.com/repos/igoforth/RWAILib/releases/latest";
     private const string bootstrapString =
-        "https://github.com/igoforth/RWAILib/releases/latest/download/Bootstrap.py";
+        "https://github.com/igoforth/RWAILib/releases/latest/download/bootstrap.py";
     private const string pythonString = "https://cosmo.zip/pub/cosmos/bin/python";
     private static string oldRelease = "_";
     private static string newRelease = "_";
@@ -74,10 +76,10 @@ public sealed class BootstrapTool
             "bin",
             platform == OSPlatform.Windows ? "llamafile.com" : "llamafile"
         );
-        isConfigured = checkConfigured();
+        isConfigured = CheckConfigured();
     }
 
-    private static bool checkConfigured()
+    private static bool CheckConfigured()
     {
         var directory_path_list = new[]
         {
@@ -110,7 +112,7 @@ public sealed class BootstrapTool
     }
 
     // compare github api against pinned "./.version"
-    private async void checkServerUpdate()
+    private async void CheckServerUpdate()
     {
         if (shouldUpdate == null)
             return;
@@ -127,7 +129,7 @@ public sealed class BootstrapTool
             }
 
             // check for internet
-            internetAccess = checkInternet();
+            internetAccess = CheckInternet();
             if (!internetAccess)
             {
                 triggerUpdate = false;
@@ -168,11 +170,11 @@ public sealed class BootstrapTool
     }
 
     // check for internet access
-    public static bool checkInternet()
+    public static bool CheckInternet()
     {
         try
         {
-            using var pingSender = new Ping();
+            using var pingSender = new System.Net.NetworkInformation.Ping();
             var pingReply = pingSender.Send("dns.google");
             if (pingReply.Status == IPStatus.Success)
                 return true;
@@ -184,7 +186,7 @@ public sealed class BootstrapTool
         return false;
     }
 
-    private static void getSystemInfo()
+    private static void GetSystemInfo()
     {
         platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? OSPlatform.Windows
@@ -203,14 +205,14 @@ public sealed class BootstrapTool
         };
     }
 
-    private static void setGrpcOverrideLocation()
+    private static void SetGrpcOverrideLocation()
     {
         if (platform == null || arch == null)
             return;
 
         // determine correct lib
         var libBaseDir = Path.GetFullPath(
-            Path.Combine(Assembly.GetCallingAssembly().Location, @"..\..\..\Libraries\")
+            Path.Combine(Assembly.GetCallingAssembly().Location, @"..\..\Libraries\")
         );
         var libraryMapping = new Dictionary<
             (OSPlatform, Architecture),
@@ -280,7 +282,7 @@ public sealed class BootstrapTool
 
             // check for updates
             // setting result is responsibility of callee
-            bt.checkServerUpdate();
+            bt.CheckServerUpdate();
 
             // await finish
             while (!updateTask.IsCompleted)
@@ -370,7 +372,7 @@ public sealed class BootstrapTool
         {
             case ContentType.File:
 #if DEBUG
-                Debug.Assert(destination != null, "Destination cannot be null");
+                System.Diagnostics.Debug.Assert(destination != null, "Destination cannot be null");
 #endif
 
                 if (Directory.Exists(destination))

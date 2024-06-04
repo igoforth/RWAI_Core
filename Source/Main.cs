@@ -1,16 +1,15 @@
-﻿global using System;
-global using RimWorld;
-global using UnityEngine;
-global using Verse;
-using HarmonyLib;
-
-namespace AICore;
-
+﻿using System;
 using System.Collections;
 using System.Collections.Concurrent;
-using System.Configuration;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using HarmonyLib;
+using UnityEngine;
+using Verse;
+
+namespace AICore;
 
 [HarmonyPatch(typeof(Current), nameof(Current.Notify_LoadedSceneChanged))]
 [StaticConstructorOnStartup]
@@ -62,9 +61,7 @@ public static class Main
         while (!tcs.Task.IsCompleted)
         {
             if (actions.TryDequeue(out var queuedAction))
-            {
                 queuedAction();
-            }
 
             await Task.Delay(200);
         }
@@ -93,9 +90,7 @@ public static class Main
         while (!tcs.Task.IsCompleted)
         {
             if (actions.TryDequeue(out var queuedAction))
-            {
                 queuedAction();
-            }
 
             await Task.Delay(200);
         }
@@ -108,33 +103,37 @@ public class AICoreMod : Mod
 {
     public static CancellationTokenSource onQuit = new();
     public static AICoreSettings? Settings;
-    public static ServerManager Server = ServerManager.Instance;
-    public static JobClient Client = JobClient.Instance;
+    private static readonly Lazy<ServerManager> _lazyServerManager =
+        new(() => ServerManager.Instance);
+    public static ServerManager Server => _lazyServerManager.Value;
+    private static readonly Lazy<JobClient> _lazyClient = new(() => JobClient.Instance);
+    public static JobClient Client => _lazyClient.Value;
     public static Mod? self;
+
+    static AICoreMod() { }
 
     public AICoreMod(ModContentPack content)
         : base(content)
     {
+#if DEBUG
+        LogTool.Debug("AICoreMod: Constructor called");
+#endif
+
         self = this;
         Settings = GetSettings<AICoreSettings>();
 
         // Get HW info and set intercepting env vars
-        BootstrapTool.preInit();
+        // BootstrapTool.preInit();
 
         // Force a reload of the runtime assembly binding settings
         // idk if it works but its something to experiment with
-        ConfigurationManager.RefreshSection("runtime");
-
-        // Could be used someday if I can get it working?
-        // TypeResolver.Initialize();
+        // ConfigurationManager.RefreshSection("runtime");
 
         var harmony = new Harmony("net.trojan.rimworld.mod.AICore");
         harmony.PatchAll();
 
         LongEventHandler.ExecuteWhenFinished(() =>
         {
-            // This performs any necessary setup when the game is loaded
-
             // this will exit early if:
             // already configured
             // user setting
@@ -143,8 +142,6 @@ public class AICoreMod : Mod
 
             if (Settings.IsConfigured)
             {
-                // This is the main entry point for the mod
-
                 // Should only run after BootstrapTool.Run() finishes
                 // if not, implement connection manager in Client
                 Client.Start("127.0.0.1", 50051);

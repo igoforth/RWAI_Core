@@ -1,18 +1,20 @@
-using Steamworks;
-using Verse.Steam;
-
-namespace AICore;
-
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Steamworks;
+using UnityEngine;
+using Verse;
+using Verse.Steam;
+
+namespace AICore;
 
 public class JobClient : IDisposable
 {
-    private JobManager.JobManagerClient? _client;
+    private Lazy<JobManager.JobManagerClient>? _lazyClient;
     private Channel? _channel;
     private static int jobCounter = 0;
     private static readonly ConcurrentBag<JobTask> _taskList = new();
@@ -41,12 +43,14 @@ public class JobClient : IDisposable
 
         // _channel = new Channel(address, ChannelCredentials.Insecure, channelOptions);
         _channel = new Channel(address, ChannelCredentials.Insecure);
-        _client = new JobManager.JobManagerClient(_channel);
+        _lazyClient = new Lazy<JobManager.JobManagerClient>(
+            () => new JobManager.JobManagerClient(_channel)
+        );
     }
 
     public void AddJob(JobRequest jobRequest, Func<JobResponse, Task> callback)
     {
-        if (_channel == null || _client == null)
+        if (_channel == null || _lazyClient == null)
             return;
 
         if (jobRequest.JobId == 0)
@@ -61,7 +65,7 @@ public class JobClient : IDisposable
         try
         {
             var callOptions = new CallOptions(deadline: DateTime.UtcNow.AddMinutes(30));
-            var jobCall = _client.JobServiceAsync(jobRequest, callOptions);
+            var jobCall = _lazyClient.Value.JobServiceAsync(jobRequest, callOptions);
             var jobTask = new JobTask(jobCall, callback);
             _taskList.Add(jobTask);
 #if DEBUG
@@ -76,7 +80,7 @@ public class JobClient : IDisposable
 
     public async Task MonitorJobsAsync()
     {
-        if (_channel == null || _client == null)
+        if (_channel == null || _lazyClient == null)
             return;
         if (_monitorActive.CurrentCount == 0)
             return;
@@ -151,7 +155,6 @@ public class JobClient : IDisposable
         {
             _channel?.ShutdownAsync().Wait();
             _channel = null;
-            _client = null;
         }
 
         _disposed = true;
@@ -169,14 +172,8 @@ public class JobClient : IDisposable
     }
 }
 
-public class JobTask
+public class JobTask(AsyncUnaryCall<JobResponse> asyncCall, Func<JobResponse, Task> callback)
 {
-    public AsyncUnaryCall<JobResponse> AsyncCall { get; }
-    public Func<JobResponse, Task> Callback { get; }
-
-    public JobTask(AsyncUnaryCall<JobResponse> asyncCall, Func<JobResponse, Task> callback)
-    {
-        AsyncCall = asyncCall;
-        Callback = callback;
-    }
+    public AsyncUnaryCall<JobResponse> AsyncCall { get; } = asyncCall;
+    public Func<JobResponse, Task> Callback { get; } = callback;
 }

@@ -1,13 +1,13 @@
-namespace AICore;
-
+using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using K4os.Compression.LZ4;
+using ImpromptuNinjas.ZStd;
 using Newtonsoft.Json;
+
+namespace AICore;
 
 public class CompressedDictionary<T>
     where T : struct
@@ -161,46 +161,21 @@ public class CompressedDictionary<T>
 #if DEBUG
         LogTool.Debug($"Storing Value: {value}");
 #endif
-        var serializedValue = JsonConvert.SerializeObject(value);
-        var bytes = Encoding.UTF8.GetBytes(serializedValue);
-
-        var maxCompressedLength = LZ4Codec.MaximumOutputSize(bytes.Length);
-        var compressedBytes = new byte[maxCompressedLength];
-
-        var compressedLength = LZ4Codec.Encode(
-            bytes,
-            0,
-            bytes.Length,
-            compressedBytes,
-            0,
-            maxCompressedLength
-        );
-
-        Array.Resize(ref compressedBytes, compressedLength);
-        return compressedBytes;
+        using var outputStream = new MemoryStream();
+        using var compressionStream = new ZStdCompressStream(outputStream);
+        using var streamWriter = new StreamWriter(compressionStream);
+        var serializer = new JsonSerializer();
+        serializer.Serialize(streamWriter, value);
+        streamWriter.Flush();
+        return outputStream.ToArray();
     }
 
     private T DecompressValue(byte[] compressed)
     {
-        var maxDecompressedLength = 1024 * 1024; // Adjust this size based on your expected data size
-        var decompressedBytes = new byte[maxDecompressedLength];
-
-        var decompressedLength = LZ4Codec.Decode(
-            compressed,
-            0,
-            compressed.Length,
-            decompressedBytes,
-            0,
-            maxDecompressedLength
-        );
-
-        var serializedValue = Encoding.UTF8.GetString(decompressedBytes, 0, decompressedLength);
-#if DEBUG
-        var value = JsonConvert.DeserializeObject<T>(serializedValue);
-        LogTool.Debug($"Retrieving Value: {value}");
-        return value;
-#else
-        return JsonConvert.DeserializeObject<T>(serializedValue);
-#endif
+        using var inputStream = new MemoryStream(compressed);
+        using var decompressionStream = new ZStdDecompressStream(inputStream);
+        using var streamReader = new StreamReader(decompressionStream);
+        var serializer = new JsonSerializer();
+        return (T)serializer.Deserialize(streamReader, typeof(T));
     }
 }
