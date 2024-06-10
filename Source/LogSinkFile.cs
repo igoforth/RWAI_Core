@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using Newtonsoft.Json;
 using Verse;
 
@@ -28,7 +26,7 @@ public class FileSink : ISink
         }
         else
         {
-            Directory.CreateDirectory(modPath);
+            _ = Directory.CreateDirectory(modPath);
         }
 
         // Create the log file and keep the stream open
@@ -49,10 +47,12 @@ public class FileSink : ISink
         }
     }
 
-    private void LogMessage(string message, int level)
+    private static void LogMessage(string message, int level)
     {
         if (streamWriter == null)
+        {
             return;
+        }
 
         var logEntry = new
         {
@@ -66,7 +66,7 @@ public class FileSink : ISink
         Tools.SafeAsync(async () =>
         {
             string jsonLogEntry = JsonConvert.SerializeObject(logEntry);
-            await streamWriter.WriteLineAsync(jsonLogEntry);
+            await streamWriter.WriteLineAsync(jsonLogEntry).ConfigureAwait(false);
         });
     }
 
@@ -75,9 +75,25 @@ public class FileSink : ISink
         LogMessage(formattedLogMessage, level);
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            LogTool.RemoveSink(this); // Remove from LogTool's sinks
+            streamWriter?.Dispose(); // Dispose the StreamWriter
+        }
+    }
+
+
     public void Dispose()
     {
-        LogTool.RemoveSink(this); // Remove from LogTool's sinks
-        streamWriter?.Dispose(); // Dispose the StreamWriter
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+
+    ~FileSink()
+    {
+        Dispose(false);
     }
 }

@@ -1,7 +1,4 @@
-using System;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using RimWorld;
 using Steamworks;
 using Verse;
@@ -12,7 +9,7 @@ namespace AICore;
 
 public static class Tools
 {
-    public static bool DEBUG = false;
+    public static bool DEBUG;
     public static readonly Regex tagRemover =
         new("<color.+?>(.+?)</(?:color)?>", RegexOptions.Singleline);
 
@@ -34,19 +31,24 @@ public static class Tools
 
     public static string? PlayerName()
     {
-        if (SteamManager.Initialized == false)
+        if (!SteamManager.Initialized)
+        {
             return null;
-        var name = SteamFriends.GetPersonaName();
+        }
+
+        string name = SteamFriends.GetPersonaName();
         return name;
     }
 
-    public static bool NonEmpty(this string str) => string.IsNullOrEmpty(str) == false;
+    public static bool NonEmpty(this string str) => !string.IsNullOrEmpty(str);
 
-    public static bool NonEmpty(this TaggedString str) => string.IsNullOrEmpty(str) == false;
+    public static bool NonEmpty(this TaggedString str) => !string.IsNullOrEmpty(str);
 
     public static string OrderString(this Designation des)
     {
-        return des.def.label.NonEmpty()
+        return des == null
+            ? throw new ArgumentNullException(nameof(des))
+            : des.def.label.NonEmpty()
             ? des.def.label
             : des.def.LabelCap.NonEmpty()
                 ? des.def.LabelCap
@@ -71,7 +73,7 @@ public static class Tools
         {
             try
             {
-                await function();
+                await function().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -83,10 +85,13 @@ public static class Tools
     public static async Task SafeWait(int milliseconds)
     {
         if (milliseconds == 0)
+        {
             return;
+        }
+
         try
         {
-            await Task.Delay(milliseconds, AICoreMod.onQuit.Token);
+            await Task.Delay(milliseconds, AICoreMod.onQuit.Token).ConfigureAwait(false);
         }
         catch (TaskCanceledException) { }
     }
@@ -97,7 +102,7 @@ public static class Tools
         {
             while (AICoreMod.Running)
             {
-                await SafeWait(loopDelay);
+                await SafeWait(loopDelay).ConfigureAwait(false);
                 try
                 {
                     action();
@@ -105,7 +110,7 @@ public static class Tools
                 catch (Exception ex)
                 {
                     LogTool.Error(ex.ToString());
-                    await SafeWait(1000);
+                    await SafeWait(1000).ConfigureAwait(false);
                 }
             }
         });
@@ -117,15 +122,15 @@ public static class Tools
         {
             while (AICoreMod.Running)
             {
-                await SafeWait(loopDelay);
+                await SafeWait(loopDelay).ConfigureAwait(false);
                 try
                 {
-                    await function();
+                    await function().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     LogTool.Error(ex.ToString());
-                    await SafeWait(1000);
+                    await SafeWait(1000).ConfigureAwait(false);
                 }
             }
         });
@@ -137,16 +142,18 @@ public static class Tools
         {
             while (AICoreMod.Running)
             {
-                await SafeWait(loopDelay);
+                await SafeWait(loopDelay).ConfigureAwait(false);
                 try
                 {
-                    if (await function())
+                    if (await function().ConfigureAwait(false))
+                    {
                         continue;
+                    }
                 }
                 catch (Exception ex)
                 {
                     LogTool.Error(ex.ToString());
-                    await SafeWait(1000);
+                    await SafeWait(1000).ConfigureAwait(false);
                 }
             }
         });
@@ -154,16 +161,15 @@ public static class Tools
 
     public static string Type(this Pawn pawn)
     {
-        if (pawn.HostileTo(Faction.OfPlayer))
-        {
-            if (pawn.RaceProps.IsMechanoid)
-                return Strings.mechanoid;
-            else
-                return Strings.enemy;
-        }
-        if (pawn.IsColonist || pawn.IsColonyMech)
-            return Strings.colonist;
-        return Strings.visitor;
+        return pawn == null
+            ? throw new ArgumentNullException(nameof(pawn))
+            : pawn.HostileTo(Faction.OfPlayer)
+            ? pawn.RaceProps.IsMechanoid
+                ? Strings.mechanoid
+                : Strings.enemy
+            : pawn.IsColonist || pawn.IsColonyMech
+                ? Strings.colonist
+                : Strings.visitor;
     }
 
     public static string NameAndType(this Pawn pawn)
@@ -173,15 +179,15 @@ public static class Tools
 
     public static string? ToGameStringFromPOVWithType(this LogEntry entry, Pawn pawn)
     {
-        if (pawn == null)
-            return null;
-        if (pawn.IsColonist == false)
-            return null;
-        var result = entry.ToGameStringFromPOV(pawn, false);
-        var pawns = pawn.Map.mapPawns.AllPawnsSpawned.ToArray();
-        for (var i = 0; i < pawns.Length; i++)
+        if (pawn == null) throw new ArgumentNullException(nameof(pawn));
+        if (entry == null) throw new ArgumentNullException(nameof(entry));
+        if (!pawn.IsColonist) return null;
+
+        string result = entry.ToGameStringFromPOV(pawn, false);
+        Pawn[] pawns = [.. pawn.Map.mapPawns.AllPawnsSpawned];
+        for (int i = 0; i < pawns.Length; i++)
         {
-            var p = pawns[i];
+            Pawn p = pawns[i];
             if (p.RaceProps.Humanlike)
                 result = result.Replace(p.LabelShortCap, p.NameAndType());
         }
@@ -238,7 +244,7 @@ public static class Tools
 
         try
         {
-            var report = job.GetReport(driverPawn);
+            string report = job.GetReport(driverPawn);
             // Ensures report is not null or empty before trying to capitalize.
             if (!string.IsNullOrEmpty(report))
             {
@@ -270,22 +276,17 @@ public static class Tools
         {
             return $"{noun}es";
         }
-        else if (noun.EndsWith("y") && noun.Length > 1 && !"aeiou".Contains(noun[noun.Length - 2]))
+        else if (noun.EndsWith("y") && noun.Length > 1 && !"aeiou".Contains(noun[^2]))
         {
             // Words ending in 'y' following a consonant should change the 'y' to 'ies'
-            return $"{noun.Substring(0, noun.Length - 1)}ies";
+            return $"{noun[..^1]}ies";
         }
         else if (noun.EndsWith("f") || noun.EndsWith("fe"))
         {
             // Words ending in 'f' or 'fe' may change to "ves" in the plural form
-            if (noun.EndsWith("fe"))
-            {
-                return $"{noun.Substring(0, noun.Length - 2)}ves";
-            }
-            else
-            {
-                return $"{noun.Substring(0, noun.Length - 1)}ves";
-            }
+            return noun.EndsWith("fe")
+                ? $"{noun[..^2]}ves"
+                : $"{noun[..^1]}ves";
         }
         // Default pluralization
         else

@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using Verse;
 
@@ -34,11 +33,11 @@ public static class UX
         float gap = 6f
     )
     {
-        var size = Text.CalcSize(textLeft);
-        var rect = list.GetRect(size.y);
-        if (tooltip != null)
-            TooltipHandler.TipRegion(rect, tooltip);
-        var anchor = Text.Anchor;
+        Vector2 size = Text.CalcSize(textLeft);
+        Rect rect = list.GetRect(size.y);
+        if (tooltip != null) TooltipHandler.TipRegion(rect, tooltip);
+
+        TextAnchor anchor = Text.Anchor;
         Text.Anchor = TextAnchor.MiddleLeft;
         Widgets.Label(
             rect.LeftPartPixels(size.x),
@@ -48,8 +47,7 @@ public static class UX
         Text.Anchor = TextAnchor.MiddleRight;
         Widgets.Label(rect.RightPartPixels(size.x), textRight);
         Text.Anchor = anchor;
-        if (gap > 0)
-            list.Gap(gap);
+        if (gap > 0) list.Gap(gap);
     }
 
     // public static void TextField(
@@ -101,9 +99,9 @@ public static class UX
         GameFont? gameFont = null
     )
     {
-        var input = logarithmic != 1 ? Mathf.Log(value, logarithmic) : value;
-        var min2 = logarithmic != 1 ? Mathf.Log(min, logarithmic) : min;
-        var max2 = logarithmic != 1 ? Mathf.Log(max, logarithmic) : max;
+        float input = logarithmic != 1 ? Mathf.Log(value, logarithmic) : value;
+        float min2 = logarithmic != 1 ? Mathf.Log(min, logarithmic) : min;
+        float max2 = logarithmic != 1 ? Mathf.Log(max, logarithmic) : max;
         HorizontalSlider(
             list.GetRect(22f),
             ref input,
@@ -137,9 +135,9 @@ public static class UX
         string? tooltip = null
     )
     {
-        var input = logarithmic != 1 ? Mathf.Log(value, logarithmic) : value;
-        var min2 = logarithmic != 1 ? Mathf.Log(min, logarithmic) : min;
-        var max2 = logarithmic != 1 ? Mathf.Log(max, logarithmic) : max;
+        float input = logarithmic != 1 ? Mathf.Log(value, logarithmic) : value;
+        float min2 = logarithmic != 1 ? Mathf.Log(min, logarithmic) : min;
+        float max2 = logarithmic != 1 ? Mathf.Log(max, logarithmic) : max;
         HorizontalSlider(
             list.GetRect(22f),
             ref input,
@@ -154,7 +152,10 @@ public static class UX
             Mathf.Min(max, logarithmic != 1 ? Mathf.Pow(logarithmic, input) : input)
         );
         if (roundTo > 0f)
+        {
             value = Mathf.RoundToInt(value / roundTo) * roundTo;
+        }
+
         list.Gap(2f);
     }
     #endregion Listing_Standard extensions
@@ -171,14 +172,14 @@ public static class UX
         GameFont? gameFont = null
     )
     {
-        var first = rect.width / 2.5f;
-        var second = rect.width - first;
+        float first = rect.width / 2.5f;
+        float second = rect.width - first;
 
-        var anchor = Text.Anchor;
-        var font = Text.Font;
+        TextAnchor anchor = Text.Anchor;
+        GameFont font = Text.Font;
         Text.Font = gameFont ?? GameFont.Tiny;
         Text.Anchor = TextAnchor.UpperLeft;
-        var rect2 = rect.LeftPartPixels(first);
+        Rect rect2 = rect.LeftPartPixels(first);
         rect2.y -= 2f;
         Widgets.Label(rect2, label);
         Text.Anchor = anchor;
@@ -186,41 +187,44 @@ public static class UX
 
         value = GUI.HorizontalSlider(rect.RightPartPixels(second), value, leftValue, rightValue);
         if (roundTo > 0f)
+        {
             value = Mathf.RoundToInt(value / roundTo) * roundTo;
+        }
 
         if (tooltip != null)
+        {
             TooltipHandler.TipRegion(rect, tooltip);
+        }
     }
 
     public static string TextAreaScrollable(Rect rect, string text, ref Vector2 scrollbarPosition)
     {
-        var rect2 = new Rect(
-            0f,
-            0f,
-            rect.width - 16f,
-            Mathf.Max(Text.CalcHeight(text, rect.width) + 10f, rect.height)
-        );
+        Rect rect2 =
+            new(
+                0f,
+                0f,
+                rect.width - 16f,
+                Mathf.Max(Text.CalcHeight(text, rect.width) + 10f, rect.height)
+            );
         Widgets.BeginScrollView(rect, ref scrollbarPosition, rect2, true);
-        var style = Text.textAreaStyles[1];
+        GUIStyle style = Text.textAreaStyles[1];
         style.padding = new RectOffset(8, 8, 8, 8);
         style.active.background = Texture2D.blackTexture;
         style.active.textColor = Color.white;
-        var result = GUI.TextArea(rect2, text, style);
+        string result = GUI.TextArea(rect2, text, style);
         Widgets.EndScrollView();
         return result;
     }
 
-    public static string Float(this int value, int decimals, string? unit = null) =>
+    public static string MyFloat(this int value, int decimals, string? unit = null) =>
         value.ToString("F" + decimals) + (unit == null ? "" : $" {unit}");
 
     public static int Milliseconds(this float f) => Mathf.FloorToInt(f * 1000);
 
     public static string ToPercentage(this float value, bool addPlus = true)
     {
-        var percentageValue = value * 100;
-        if (addPlus)
-            return $"{percentageValue:+0.##;-0.##;0}%";
-        return $"{percentageValue:0.##;-0.##;0}%";
+        float percentageValue = value * 100;
+        return addPlus ? $"{percentageValue:+0.##;-0.##;0}%" : $"{percentageValue:0.##;-0.##;0}%";
     }
     #endregion Other UX elements & primitive extensions
 }

@@ -1,8 +1,4 @@
-using System;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Steamworks;
@@ -16,11 +12,11 @@ public class JobClient : IDisposable
 {
     private Lazy<JobManager.JobManagerClient>? _lazyClient;
     private Channel? _channel;
-    private static int jobCounter = 0;
-    private static readonly ConcurrentBag<JobTask> _taskList = new();
+    private static int jobCounter;
+    private static readonly ConcurrentBag<JobTask> _taskList = [];
     private static readonly Lazy<JobClient> _instance = new(() => new JobClient());
     private static readonly SemaphoreSlim _monitorActive = new(1, 1);
-    private bool _disposed = false;
+    private bool _disposed;
 
     private JobClient() { }
 
@@ -28,7 +24,7 @@ public class JobClient : IDisposable
 
     public void Start(string ip, int port)
     {
-        var address = $"{ip}:{port}";
+        string address = $"{ip}:{port}";
         // var channelOptions = new List<ChannelOption>
         // {
         //     new(ChannelOptions.MaxSendMessageLength, int.MaxValue),
@@ -50,8 +46,8 @@ public class JobClient : IDisposable
 
     public void AddJob(JobRequest jobRequest, Func<JobResponse, Task> callback)
     {
-        if (_channel == null || _lazyClient == null)
-            return;
+        if (_channel == null || _lazyClient == null) return;
+        if (jobRequest == null) return;
 
         if (jobRequest.JobId == 0)
         {
@@ -64,9 +60,12 @@ public class JobClient : IDisposable
 
         try
         {
-            var callOptions = new CallOptions(deadline: DateTime.UtcNow.AddMinutes(30));
-            var jobCall = _lazyClient.Value.JobServiceAsync(jobRequest, callOptions);
-            var jobTask = new JobTask(jobCall, callback);
+            CallOptions callOptions = new(deadline: DateTime.UtcNow.AddMinutes(30));
+            AsyncUnaryCall<JobResponse> jobCall = _lazyClient.Value.JobServiceAsync(
+                jobRequest,
+                callOptions
+            );
+            JobTask jobTask = new(jobCall, callback);
             _taskList.Add(jobTask);
 #if DEBUG
             LogTool.Debug("JobClient sent job!");
@@ -80,31 +79,33 @@ public class JobClient : IDisposable
 
     public async Task MonitorJobsAsync()
     {
-        if (_channel == null || _lazyClient == null)
-            return;
-        if (_monitorActive.CurrentCount == 0)
-            return;
+        if (_channel == null || _lazyClient == null) return;
+        if (_monitorActive.CurrentCount == 0) return;
 
-        await _monitorActive.WaitAsync();
+        await _monitorActive.WaitAsync().ConfigureAwait(false);
         try
         {
             while (!_taskList.IsEmpty)
             {
-                var jobTasks = _taskList.ToArray();
-                var completedTask = await Task.WhenAny(
-                    jobTasks.Select(t => t.AsyncCall.ResponseAsync)
-                );
-                var completedJobTask = jobTasks.FirstOrDefault(t =>
+                JobTask[] jobTasks = [.. _taskList];
+                Task<JobResponse> completedTask = await Task.WhenAny(
+                        jobTasks.Select(t => t.AsyncCall.ResponseAsync)
+                    )
+                    .ConfigureAwait(false);
+                JobTask completedJobTask = jobTasks.FirstOrDefault(t =>
                     t.AsyncCall.ResponseAsync == completedTask
                 );
 
                 if (completedJobTask == null)
+                {
                     continue;
+                }
 
                 try
                 {
-                    var jobResponse = await completedJobTask.AsyncCall.ResponseAsync;
-                    await completedJobTask.Callback(jobResponse);
+                    JobResponse jobResponse =
+                        await completedJobTask.AsyncCall.ResponseAsync.ConfigureAwait(false);
+                    await completedJobTask.Callback(jobResponse).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -112,44 +113,37 @@ public class JobClient : IDisposable
                 }
                 finally
                 {
-                    _taskList.TryTake(out var _); // Remove the completed task
+                    _ = _taskList.TryTake(out _); // Remove the completed task
                 }
             }
         }
         finally
         {
-            _monitorActive.Release();
+            _ = _monitorActive.Release();
         }
     }
 
     private static SupportedLanguage GetLanguage()
     {
-        if (
-            LanguageDatabase.activeLanguage?.folderName is string folderLang
-            && LanguageMapping.LanguageMap.TryGetValue(folderLang, out var mappedLang1)
-        )
-            return mappedLang1;
-
-        if (
-            SteamManager.Initialized
+        return LanguageDatabase.activeLanguage?.folderName is string folderLang
+            && LanguageMapping.LanguageMap.TryGetValue(
+                folderLang,
+                out SupportedLanguage mappedLang1
+            )
+            ? mappedLang1
+            : SteamManager.Initialized
             && SteamApps.GetCurrentGameLanguage().CapitalizeFirst() is string steamLang
-            && LanguageMapping.LanguageMap.TryGetValue(steamLang, out var mappedLang2)
-        )
-            return mappedLang2;
-
-        if (
-            Application.systemLanguage.ToStringSafe() is string appLang
-            && LanguageMapping.LanguageMap.TryGetValue(appLang, out var mappedLang3)
-        )
-            return mappedLang3;
-
-        return SupportedLanguage.English;
+            && LanguageMapping.LanguageMap.TryGetValue(steamLang, out SupportedLanguage mappedLang2)
+            ? mappedLang2
+            : Application.systemLanguage.ToStringSafe() is string appLang
+            && LanguageMapping.LanguageMap.TryGetValue(appLang, out SupportedLanguage mappedLang3)
+                ? mappedLang3
+                : SupportedLanguage.English;
     }
 
     protected virtual void Dispose(bool disposing)
     {
-        if (_disposed)
-            return;
+        if (_disposed) return;
 
         if (disposing)
         {

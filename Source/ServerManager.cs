@@ -3,25 +3,26 @@
 // sends gRPC to ai server to get generation
 // updates the server status
 //
-using System;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
-using System.Threading;
 using Verse;
 
 namespace AICore;
 
-public class ServerManager
+public class ServerManager : IDisposable
 {
     public static CancellationTokenSource onQuit = new();
-    public static bool Running => onQuit.IsCancellationRequested == false;
-    public static ServerStatus serverStatusEnum = ServerStatus.Offline;
-    public static string serverStatus = "AI Server " + ServerStatus.Offline;
+    public static bool Running => !onQuit.IsCancellationRequested;
+    public static ServerStatus currentServerStatusEnum = ServerStatus.Offline;
+    public static string currentServerStatus = "AI Server " + ServerStatus.Offline;
     private static readonly PlatformID platform = Environment.OSVersion.Platform;
     private static readonly string shellBin =
         platform == PlatformID.Win32NT ? "powershell.exe" : "sh";
-    private const string serverArgs = "bin/python AIServer.pyz";
+#if DEBUG
+    private const string serverArgs = "bin/python AIServer.pyz --loglevel DEBUG";
+#else
+    private const string serverArgs = "bin/python AIServer.pyz --loglevel INFO";
+#endif
     private static string? modPath;
     private static ServerManager? instance;
     private Process? serverProcess;
@@ -50,10 +51,7 @@ public class ServerManager
     {
         get
         {
-            if (instance == null)
-            {
-                instance = new ServerManager();
-            }
+            instance ??= new ServerManager();
             return instance;
         }
     }
@@ -62,8 +60,10 @@ public class ServerManager
     {
         lock (lockObject)
         {
-            if (Running && serverStatusEnum == ServerStatus.Online)
+            if (Running && currentServerStatusEnum == ServerStatus.Online)
+            {
                 return; // Avoid starting if already running
+            }
 
             // logSink = FileSink.Instance;
             StartProcess(shellBin, serverArgs);
@@ -74,8 +74,10 @@ public class ServerManager
     {
         lock (lockObject)
         {
-            if (!Running || serverStatusEnum == ServerStatus.Offline)
+            if (!Running || currentServerStatusEnum == ServerStatus.Offline)
+            {
                 return; // Avoid stopping if not running
+            }
 
             onQuit.Cancel();
             if (serverProcess != null && !serverProcess.HasExited)
@@ -90,12 +92,12 @@ public class ServerManager
     // Update server status
     public static void UpdateServerStatus(ServerStatus status)
     {
-        serverStatusEnum = status;
-        serverStatus = "AI Server " + status.ToString();
-        LogTool.Message(serverStatus, "ServerSink");
+        currentServerStatusEnum = status;
+        currentServerStatus = "AI Server " + status.ToString();
+        LogTool.Message(currentServerStatus, "ServerSink");
     }
 
-    void StartProcess(string shellBin, string shellArgs)
+    private void StartProcess(string shellBin, string shellArgs)
     {
         try
         {
@@ -139,26 +141,41 @@ public class ServerManager
             };
 #endif
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            LogTool.Error($"Error starting process: {ex}");
+            LogTool.Error($"Invalid operation error starting process: {ex}");
             UpdateServerStatus(ServerStatus.Error);
-            return;
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            LogTool.Error($"Win32 error starting process: {ex}");
+            UpdateServerStatus(ServerStatus.Error);
+        }
+        catch (PlatformNotSupportedException ex)
+        {
+            LogTool.Error($"Platform not supported error starting process: {ex}");
+            UpdateServerStatus(ServerStatus.Error);
         }
 
         // Run the server process
         Tools.SafeAsync(async () =>
         {
+            if (serverProcess == null) throw new InvalidOperationException(
+                    "Server is trying to start without being initialized!"
+                );
+
             serverProcess.Start();
+
+#if DEBUG
+            // Read the output stream first and then wait.
+            serverProcess.BeginOutputReadLine();
+#endif
+            serverProcess.BeginErrorReadLine();
+
             UpdateServerStatus(ServerStatus.Online);
             LogTool.Message("AI Server started! OMG it actually started, whattttttt");
 
-            // Read the output stream first and then wait.
-            serverProcess.BeginOutputReadLine();
-            serverProcess.BeginErrorReadLine();
-
-            while (Running && AICoreMod.Running)
-                await Tools.SafeWait(200);
+            while (Running && AICoreMod.Running) await Tools.SafeWait(200).ConfigureAwait(false);
 
             ProcessInterruptHelper.SendSigINT(serverProcess);
             serverProcess.WaitForExit();
@@ -169,8 +186,7 @@ public class ServerManager
     // Handle Exited event and display process information.
     private void ProcessExited(object sender, EventArgs e)
     {
-        if (serverProcess == null)
-            return;
+        if (serverProcess == null) return;
 
 #if DEBUG
         LogTool.Debug($"Exit time    : {serverProcess.ExitTime}");
@@ -180,8 +196,27 @@ public class ServerManager
         );
 #endif
         if (serverProcess.ExitCode != 0)
+        {
             LogTool.Error("AI Server exited with non-zero code!");
+        }
+
         LogTool.Message("AI Server shutdown.");
         UpdateServerStatus(ServerStatus.Offline);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            Stop();
+            onQuit?.Dispose();
+            serverProcess?.Dispose();
+        }
     }
 }

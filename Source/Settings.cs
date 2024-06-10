@@ -5,7 +5,7 @@ namespace AICore;
 
 public partial class AICoreSettings : ModSettings
 {
-    public bool enabled = true;
+    private readonly bool enabled = true;
 
     // reporting settings
 
@@ -186,7 +186,7 @@ public partial class AICoreSettings : ModSettings
     //     new(37 / 255f, 144 / 255f, 53 / 255f, 0.5f);
     // public static readonly Color backgroundActive = new(37 / 255f, 144 / 255f, 53 / 255f);
 
-    public void DoWindowContents(Rect inRect)
+    public static void DoWindowContents(Rect inRect)
     {
         // Rect rect;
 

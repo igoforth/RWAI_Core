@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
@@ -28,41 +26,33 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
     public static void Postfix()
     {
         Color background = new(0f, 0f, 0f, 0.8f);
-        var (sw, sh) = (UI.screenWidth, UI.screenHeight);
-        var statusWidth = 150f;
-        var statusHeight = 30f;
-        var iconSize = 11f; // Size of the status icon
-        var iconPadding = 10f; // Padding between icon and text
+        (int sw, int sh) = (UI.screenWidth, UI.screenHeight);
+        float statusWidth = 150f;
+        float statusHeight = 30f;
+        float iconSize = 11f; // Size of the status icon
+        float iconPadding = 10f; // Padding between icon and text
 
-        var rect = new Rect(
-            sw - statusWidth - 10,
-            sh - statusHeight - 10,
-            statusWidth,
-            statusHeight
-        );
+        Rect rect = new(sw - statusWidth - 10, sh - statusHeight - 10, statusWidth, statusHeight);
 
         // Draw semi-transparent background
         Widgets.DrawBoxSolid(rect, background);
 
         // Prepare to draw the text and icon
-        var anchor = Text.Anchor;
-        var font = Text.Font;
+        TextAnchor anchor = Text.Anchor;
+        GameFont font = Text.Font;
         Text.Font = GameFont.Small;
         Text.Anchor = TextAnchor.MiddleCenter;
 
         // Calculate icon and text positions
-        var iconRect = new Rect(
-            rect.x + iconPadding,
-            rect.y + (rect.height - iconSize) / 2,
-            iconSize,
-            iconSize
-        );
-        var textRect = new Rect(
-            iconRect.xMax + iconPadding,
-            rect.y + 1, // lower just a tiny bit
-            rect.width - iconRect.width - (3 * iconPadding),
-            rect.height
-        );
+        Rect iconRect =
+            new(rect.x + iconPadding, rect.y + ((rect.height - iconSize) / 2), iconSize, iconSize);
+        Rect textRect =
+            new(
+                iconRect.xMax + iconPadding,
+                rect.y + 1, // lower just a tiny bit
+                rect.width - iconRect.width - (3 * iconPadding),
+                rect.height
+            );
 
         // Draw the status texture based on the server status
         Texture2D statusTexture = Graphics.ButtonServerStatus[
@@ -131,7 +121,7 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
 
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
-        var codes = new List<CodeInstruction>(instructions);
+        List<CodeInstruction> codes = new(instructions);
 
         // first find `GenUI.DrawTextWinterShadow`
         // then insert after `stloc.1`
@@ -140,20 +130,34 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
             || m_PlayGUIServerStatusPatch is null
             || m_GlobalControlsUtility_DoPlaySettings is null
         )
+        {
             goto transpiler_error;
-        var i = codes.FindIndex(instruction => instruction.Calls(m_GenUI_DrawTextWinterShadow));
+        }
+
+        int i = codes.FindIndex(instruction => instruction.Calls(m_GenUI_DrawTextWinterShadow));
         if (i == -1)
+        {
             goto transpiler_error;
-        var j = codes.FindIndex(i, instruction => instruction.opcode == OpCodes.Stloc_1);
+        }
+
+        int j = codes.FindIndex(i, instruction => instruction.opcode == OpCodes.Stloc_1);
         if (j == -1)
+        {
             goto transpiler_error;
+        }
+
         if (j - i != 4)
+        {
             goto transpiler_error;
-        var k = codes.FindIndex(instruction =>
+        }
+
+        int k = codes.FindIndex(instruction =>
             instruction.Calls(m_GlobalControlsUtility_DoPlaySettings)
         );
         if (k == -1)
+        {
             goto transpiler_error;
+        }
 
         // assert num2 -= 4;
         IEnumerable<CodeInstruction>? gadget_ScreenHeightDecrement =
@@ -186,13 +190,17 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
                 ]
                 : null;
         if (gadget_ScreenHeightDecrement is null)
+        {
             goto transpiler_error;
+        }
 
         // assert num2 is last arg of DoPlaySettings
         IEnumerable<CodeInstruction>? gadget_ScreenHeightReference =
             (codes[k - 1].opcode == OpCodes.Ldloca_S) ? [codes[k - 1].Clone()] : null;
         if (gadget_ScreenHeightReference is null)
+        {
             goto transpiler_error;
+        }
 
         // ldloca.s  V_1	// load address of local 1 (as arg)
         // call      void AICore.GlobalControls_GlobalControlsOnGUI_Patch::PlayGUIServerStatusPatch(float32&)
@@ -200,21 +208,21 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
         // ldc.r4    4	    // load immediate 4
         // sub		        // subtract
         // stloc.1		    // store local 1
-        var newInstructions = gadget_ScreenHeightReference
+        IEnumerable<CodeInstruction> newInstructions = gadget_ScreenHeightReference
             .Concat([new CodeInstruction(OpCodes.Call, m_PlayGUIServerStatusPatch)])
             .Concat(gadget_ScreenHeightDecrement);
 
         // Insert new instructions after the found index `j`
         codes.InsertRange(j + 1, newInstructions);
 
-        // print new codes to log
-        // foreach (CodeInstruction instruction in codes.GetRange(i, 15))
-        //     LogTool.Message(instruction.ToString());
+    // print new codes to log
+    // foreach (CodeInstruction instruction in codes.GetRange(i, 15))
+    //     LogTool.Message(instruction.ToString());
 
-        transpiler_return:
+    transpiler_return:
         return codes.AsEnumerable();
 
-        transpiler_error:
+    transpiler_error:
         LogTool.Error(
             $"Cannot find {m_GenUI_DrawTextWinterShadow} in GlobalControls.GlobalControlsOnGUI!"
         );
@@ -224,40 +232,37 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
     private static void PlayGUIServerStatusPatch(ref float num2)
     {
         Color background = new(0f, 0f, 0f, 0.4f);
-        var sw = (float)UI.screenWidth;
-        var statusWidth = 148f;
-        var statusHeight = 30f;
-        var iconSize = 11f; // Size of the status icon
-        var iconPadding = 10f; // Padding between icon and text
+        float sw = UI.screenWidth;
+        float statusWidth = 148f;
+        float statusHeight = 30f;
+        float iconSize = 11f; // Size of the status icon
+        float iconPadding = 10f; // Padding between icon and text
 
         // patch num2 with our height
         num2 -= statusHeight;
 
         // position rect on screen
-        var rect = new Rect(sw - statusWidth - 2, num2, statusWidth, statusHeight);
+        Rect rect = new(sw - statusWidth - 2, num2, statusWidth, statusHeight);
 
         // Draw semi-transparent background
         Widgets.DrawBoxSolid(rect, background);
 
         // Prepare to draw the text and icon
-        var anchor = Text.Anchor;
-        var font = Text.Font;
+        TextAnchor anchor = Text.Anchor;
+        GameFont font = Text.Font;
         Text.Font = GameFont.Small;
         Text.Anchor = TextAnchor.MiddleCenter;
 
         // Calculate icon and text positions
-        var iconRect = new Rect(
-            rect.x + iconPadding,
-            rect.y + (rect.height - iconSize) / 2,
-            iconSize,
-            iconSize
-        );
-        var textRect = new Rect(
-            iconRect.xMax + iconPadding,
-            rect.y + 1, // lower just a tiny bit
-            rect.width - iconRect.width - (3 * iconPadding),
-            rect.height
-        );
+        Rect iconRect =
+            new(rect.x + iconPadding, rect.y + ((rect.height - iconSize) / 2), iconSize, iconSize);
+        Rect textRect =
+            new(
+                iconRect.xMax + iconPadding,
+                rect.y + 1, // lower just a tiny bit
+                rect.width - iconRect.width - (3 * iconPadding),
+                rect.height
+            );
 
         // Draw the status texture based on the server status
         Texture2D statusTexture = Graphics.ButtonServerStatus[
@@ -277,106 +282,6 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
     }
 }
 
-// // Modify Title accessors
-// //
-// [HarmonyPatch(typeof(CompArt), nameof(CompArt.CompInspectStringExtra))]
-// public static class CompArt_CompInspectStringExtra_Patch
-// {
-//     public static void Prefix(CompArt __instance)
-//     {
-// #if DEBUG
-//         LogTool.Debug($"Entering CompArt_CompInspectStringExtra_Patch for instance: {__instance}");
-// #endif
-//         if (!__instance.Active)
-//         {
-// #if DEBUG
-//             LogTool.Debug("Instance is not active. Exiting.");
-// #endif
-//             return;
-//         }
-// #if DEBUG
-//         LogTool.Debug("Instance is active.");
-// #endif
-
-//         if (__instance.parent.StyleSourcePrecept != null)
-//         {
-// #if DEBUG
-//             LogTool.Debug("StyleSourcePrecept is not null. Exiting.");
-// #endif
-//             return;
-//         }
-// #if DEBUG
-//         LogTool.Debug("StyleSourcePrecept is null.");
-// #endif
-
-//         var hashCode = __instance.GetHashCode();
-// #if DEBUG
-//         LogTool.Debug($"HashCode: {hashCode}");
-// #endif
-
-//         var itemStatus = UpdateItemDescriptions.GetStatus(hashCode);
-// #if DEBUG
-//         LogTool.Debug($"ItemStatus: {itemStatus}");
-// #endif
-
-//         switch (itemStatus)
-//         {
-//             case UpdateItemDescriptions.ItemStatus.Done:
-// #if DEBUG
-//                 LogTool.Debug("ItemStatus is Done.");
-// #endif
-//                 var value = UpdateItemDescriptions.GetValues(hashCode);
-//                 if (value.HasValue)
-//                 {
-// #if DEBUG
-//                     LogTool.Debug($"Value found: {value.Value.Title}");
-// #endif
-//                     __instance.titleInt = value.Value.Title;
-//                 }
-//                 else
-//                 {
-// #if DEBUG
-//                     LogTool.Debug("No value found.");
-// #endif
-//                 }
-//                 break;
-
-//             case UpdateItemDescriptions.ItemStatus.Working:
-// #if DEBUG
-//                 LogTool.Debug("ItemStatus is Working.");
-// #endif
-//                 goto default;
-
-//             case UpdateItemDescriptions.ItemStatus.NotDone:
-// #if DEBUG
-//                 LogTool.Debug("ItemStatus is NotDone.");
-// #endif
-//                 goto default;
-
-//             default:
-// #if DEBUG
-//                 LogTool.Debug("Default case. Setting null.");
-// #endif
-//                 // __instance.titleInt = GenText.CapitalizeAsTitle(
-//                 //     __instance.taleRef.GenerateText(
-//                 //         TextGenerationPurpose.ArtName,
-//                 //         __instance.Props.nameMaker
-//                 //     )
-//                 // );
-//                 if (__instance.taleRef == null)
-//                     __instance.titleInt = null;
-// #if DEBUG
-//                 LogTool.Debug($"titleInt set to {__instance.titleInt}.");
-// #endif
-//                 break;
-//         }
-
-// #if DEBUG
-//         LogTool.Debug("Exiting CompArt_CompInspectStringExtra_Patch.");
-// #endif
-//     }
-// }
-
 // Add hook to GenerateImageDescription to inject our description or add to our work queue
 //
 [HarmonyPatch(typeof(CompArt), nameof(CompArt.GenerateImageDescription))]
@@ -386,20 +291,20 @@ public static class CompArt_GenerateImageDescription_Patch
 
     public static void Postfix(CompArt __instance, ref TaggedString __result)
     {
-        if (UpdateServerStatus.serverStatusEnum != ServerManager.ServerStatus.Online)
-            return;
+        if (__instance == null) throw new ArgumentException("Instance in patch is null!");
+        if (UpdateServerStatus.serverStatusEnum != ServerManager.ServerStatus.Online) return;
 
 #if DEBUG
         LogTool.Debug("Handling CompArt type");
 #endif
 
         // Determine if we have AI-Generated result for Thing already
-        var hashCode = __instance.GetHashCode();
+        int hashCode = __instance.GetHashCode();
 #if DEBUG
         LogTool.Debug($"HashCode: {hashCode}");
 #endif
 
-        var itemStatus = UpdateItemDescriptions.GetStatus(hashCode);
+        UpdateItemDescriptions.ItemStatus itemStatus = UpdateItemDescriptions.GetStatus(hashCode);
 #if DEBUG
         LogTool.Debug($"ItemStatus: {itemStatus}");
 #endif
@@ -407,7 +312,9 @@ public static class CompArt_GenerateImageDescription_Patch
         switch (itemStatus)
         {
             case UpdateItemDescriptions.ItemStatus.Done:
-                var value = UpdateItemDescriptions.GetValues(hashCode);
+                (string Title, string Description)? value = UpdateItemDescriptions.GetValues(
+                    hashCode
+                );
                 if (value.HasValue)
                 {
 #if DEBUG
@@ -436,18 +343,18 @@ public static class CompArt_GenerateImageDescription_Patch
                     // Send thing as job with relevant info
                     // 1. send "Thing" from ScribeSaver.DebugOutputFor()
                     // 2. send Title, Description from CompArt.GenerateTitle(), CompArt.GenerateImageDescription()
-                    var myDef = Scribe.saver.DebugOutputFor(__instance.parent);
+                    string myDef = Scribe.saver.DebugOutputFor(__instance.parent);
 #if DEBUG
                     LogTool.Debug($"myDef: {myDef}");
 #endif
-                    var description = __instance.taleRef.GenerateText(
+                    TaggedString description = __instance.taleRef.GenerateText(
                         TextGenerationPurpose.ArtDescription,
                         __instance.Props.descriptionMaker
                     );
 #if DEBUG
                     LogTool.Debug($"Generated description: {description}");
 #endif
-                    var title = GenText.CapitalizeAsTitle(
+                    string title = GenText.CapitalizeAsTitle(
                         __instance.taleRef.GenerateText(
                             TextGenerationPurpose.ArtName,
                             __instance.Props.nameMaker
@@ -526,10 +433,10 @@ public static partial class GenerallTimeUpdates_Patch
     {
         float currentTime = Time.realtimeSinceStartup;
 
-        foreach (var taskEntry in updateTasks.ToList())
+        foreach (KeyValuePair<string, UpdateTaskTime> taskEntry in updateTasks.ToList())
         {
-            var key = taskEntry.Key;
-            var task = taskEntry.Value;
+            string key = taskEntry.Key;
+            UpdateTaskTime task = taskEntry.Value;
 
             if (currentTime >= task.nextUpdateTime)
             {

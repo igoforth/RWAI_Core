@@ -1,15 +1,10 @@
-using System;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using ImpromptuNinjas.ZStd;
+using System.IO.Compression;
 using Newtonsoft.Json;
 
 namespace AICore;
 
-public class CompressedDictionary<T>
+public class CachedGZipStorage<T> : IDisposable
     where T : struct
 {
     private readonly ConcurrentDictionary<int, (byte[] Value, DateTime Expiry)> _cache;
@@ -20,27 +15,29 @@ public class CompressedDictionary<T>
     private readonly int _cacheSize;
     private readonly object _cacheLock = new();
 
-    public CompressedDictionary(string filePath, int cacheSize = 1024)
+    public CachedGZipStorage(string filePath, int cacheSize = 1024)
     {
         _cache = new ConcurrentDictionary<int, (byte[] Value, DateTime Expiry)>();
         _cacheSize = cacheSize;
         if (!Directory.Exists(Path.GetDirectoryName(filePath)))
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            _ = Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+
         _filePath = filePath;
         LoadIndex();
     }
 
     public async Task AddOrUpdateAsync(int id, T value)
     {
-        byte[] compressedValue = CompressValue(value);
-        await SaveEntryAsync(id, compressedValue);
+        byte[] compressedValue = CachedGZipStorage<T>.CompressValue(value);
+        await SaveEntryAsync(id, compressedValue).ConfigureAwait(false);
         CacheValue(id, compressedValue);
     }
 
     public T? Get(int id)
     {
         if (_cache.TryGetValue(id, out var cachedValue) && cachedValue.Expiry > DateTime.UtcNow)
-            return DecompressValue(cachedValue.Value);
+            return CachedGZipStorage<T>.DecompressValue(cachedValue.Value);
+
 
         var loadTask = LoadEntryAsync(id);
         loadTask.Wait();
@@ -49,7 +46,7 @@ public class CompressedDictionary<T>
         if (loadedValue != null)
         {
             CacheValue(id, loadedValue);
-            return DecompressValue(loadedValue);
+            return CachedGZipStorage<T>.DecompressValue(loadedValue);
         }
 
         return null;
@@ -67,12 +64,12 @@ public class CompressedDictionary<T>
                     .ToList();
                 foreach (var key in expiredKeys)
                 {
-                    _cache.TryRemove(key, out _);
+                    _ = _cache.TryRemove(key, out _);
                 }
                 if (_cache.Count >= _cacheSize)
                 {
                     var oldestKey = _cache.OrderBy(pair => pair.Value.Expiry).FirstOrDefault().Key;
-                    _cache.TryRemove(oldestKey, out _);
+                    _ = _cache.TryRemove(oldestKey, out _);
                 }
             }
 
@@ -82,8 +79,7 @@ public class CompressedDictionary<T>
 
     private void LoadIndex()
     {
-        if (!File.Exists(_filePath))
-            return;
+        if (!File.Exists(_filePath)) return;
 
         using var fileStream = new FileStream(_filePath, FileMode.Open, FileAccess.Read);
         using var reader = new BinaryReader(fileStream);
@@ -93,7 +89,7 @@ public class CompressedDictionary<T>
             var id = reader.ReadInt32();
             var length = reader.ReadInt32();
             var position = reader.BaseStream.Position;
-            reader.BaseStream.Seek(length, SeekOrigin.Current);
+            _ = reader.BaseStream.Seek(length, SeekOrigin.Current);
 
             _index[id] = position;
         }
@@ -101,7 +97,7 @@ public class CompressedDictionary<T>
 
     private async Task SaveEntryAsync(int id, byte[] value)
     {
-        await _semaphore.WaitAsync();
+        await _semaphore.WaitAsync().ConfigureAwait(false);
         try
         {
             using var fileStream = new FileStream(
@@ -121,16 +117,15 @@ public class CompressedDictionary<T>
         }
         finally
         {
-            _semaphore.Release();
+            _ = _semaphore.Release();
         }
     }
 
     private async Task<byte[]?> LoadEntryAsync(int id)
     {
-        if (!_index.TryGetValue(id, out var position))
-            return null;
+        if (!_index.TryGetValue(id, out var position)) return null;
 
-        await _semaphore.WaitAsync();
+        await _semaphore.WaitAsync().ConfigureAwait(false);
         try
         {
             using var fileStream = new FileStream(
@@ -143,7 +138,7 @@ public class CompressedDictionary<T>
             );
             using var reader = new BinaryReader(fileStream);
 
-            fileStream.Seek(position, SeekOrigin.Begin);
+            _ = fileStream.Seek(position, SeekOrigin.Begin);
             var idInFile = reader.ReadInt32();
             var length = reader.ReadInt32();
             var value = reader.ReadBytes(length);
@@ -152,30 +147,80 @@ public class CompressedDictionary<T>
         }
         finally
         {
-            _semaphore.Release();
+            _ = _semaphore.Release();
         }
     }
 
-    private byte[] CompressValue(T value)
+    private static byte[] CompressValue(T value)
     {
 #if DEBUG
         LogTool.Debug($"Storing Value: {value}");
 #endif
-        using var outputStream = new MemoryStream();
-        using var compressionStream = new ZStdCompressStream(outputStream);
-        using var streamWriter = new StreamWriter(compressionStream);
-        var serializer = new JsonSerializer();
-        serializer.Serialize(streamWriter, value);
-        streamWriter.Flush();
-        return outputStream.ToArray();
+        try
+        {
+            var jsonSerializer = new JsonSerializer();
+            using (var outputStream = new MemoryStream())
+            {
+                using (var compressionStream = new GZipStream(outputStream, CompressionMode.Compress))
+                {
+                    using (var streamWriter = new StreamWriter(compressionStream))
+                    {
+                        using (var jsonWriter = new JsonTextWriter(streamWriter))
+                        {
+                            jsonSerializer.Serialize(jsonWriter, value);
+                        }
+                    }
+                }
+                return outputStream.ToArray();
+            }
+        }
+        catch (JsonSerializationException ex)
+        {
+            LogTool.Error($"Serialization error: {ex.Message}");
+            throw;
+        }
     }
 
-    private T DecompressValue(byte[] compressed)
+    private static T DecompressValue(byte[] compressed)
     {
-        using var inputStream = new MemoryStream(compressed);
-        using var decompressionStream = new ZStdDecompressStream(inputStream);
-        using var streamReader = new StreamReader(decompressionStream);
-        var serializer = new JsonSerializer();
-        return (T)serializer.Deserialize(streamReader, typeof(T));
+        try
+        {
+            var jsonSerializer = new JsonSerializer();
+            using (var inputStream = new MemoryStream(compressed))
+            {
+                using (var decompressionStream = new GZipStream(inputStream, CompressionMode.Decompress))
+                {
+                    using (var streamReader = new StreamReader(decompressionStream))
+                    {
+                        using (var jsonReader = new JsonTextReader(streamReader))
+                        {
+                            var deserializedValue = jsonSerializer.Deserialize<T>(jsonReader);
+#if DEBUG
+                            LogTool.Debug($"Retrieving value: {deserializedValue}");
+#endif
+                            return deserializedValue is T value
+                                && !EqualityComparer<T>.Default.Equals(value, default)
+                                ? value : throw new InvalidOperationException("Deserialized value is null");
+                        }
+                    }
+                }
+            }
+        }
+        catch (JsonSerializationException ex)
+        {
+            LogTool.Error($"Deserialization error: {ex.Message}");
+            throw;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing) _semaphore?.Dispose();
     }
 }

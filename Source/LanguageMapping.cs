@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace AICore;
 
 // private static readonly List<string> SupportedAutoSelectLanguages = new List<string> {
@@ -38,37 +36,35 @@ namespace AICore;
 
 public static class LanguageMapping
 {
-    public static readonly Dictionary<string, SupportedLanguage> LanguageMap = new Dictionary<
-        string,
-        SupportedLanguage
-    >
-    {
-        { "Arabic", SupportedLanguage.Arabic },
-        { "ChineseSimplified", SupportedLanguage.ChineseSimplified },
-        { "ChineseTraditional", SupportedLanguage.ChineseTraditional },
-        { "Czech", SupportedLanguage.Czech },
-        { "Danish", SupportedLanguage.Danish },
-        { "Dutch", SupportedLanguage.Dutch },
-        { "English", SupportedLanguage.English },
-        { "Estonian", SupportedLanguage.Estonian },
-        { "Finnish", SupportedLanguage.Finnish },
-        { "French", SupportedLanguage.French },
-        { "German", SupportedLanguage.German },
-        { "Hungarian", SupportedLanguage.Hungarian },
-        { "Italian", SupportedLanguage.Italian },
-        { "Japanese", SupportedLanguage.Japanese },
-        { "Korean", SupportedLanguage.Korean },
-        { "Norwegian", SupportedLanguage.Norwegian },
-        { "Polish", SupportedLanguage.Polish },
-        { "Portuguese", SupportedLanguage.Portuguese },
-        { "PortugueseBrazilian", SupportedLanguage.PortugueseBrazilian },
-        { "Romanian", SupportedLanguage.Romanian },
-        { "Russian", SupportedLanguage.Russian },
-        { "Slovak", SupportedLanguage.Slovak },
-        { "Spanish", SupportedLanguage.Spanish },
-        { "SpanishLatin", SupportedLanguage.SpanishLatin },
-        { "Swedish", SupportedLanguage.Swedish },
-        { "Turkish", SupportedLanguage.Turkish },
-        { "Ukrainian", SupportedLanguage.Ukrainian }
-    };
+    public static readonly Dictionary<string, SupportedLanguage> LanguageMap =
+        new()
+        {
+            { "Arabic", SupportedLanguage.Arabic },
+            { "ChineseSimplified", SupportedLanguage.ChineseSimplified },
+            { "ChineseTraditional", SupportedLanguage.ChineseTraditional },
+            { "Czech", SupportedLanguage.Czech },
+            { "Danish", SupportedLanguage.Danish },
+            { "Dutch", SupportedLanguage.Dutch },
+            { "English", SupportedLanguage.English },
+            { "Estonian", SupportedLanguage.Estonian },
+            { "Finnish", SupportedLanguage.Finnish },
+            { "French", SupportedLanguage.French },
+            { "German", SupportedLanguage.German },
+            { "Hungarian", SupportedLanguage.Hungarian },
+            { "Italian", SupportedLanguage.Italian },
+            { "Japanese", SupportedLanguage.Japanese },
+            { "Korean", SupportedLanguage.Korean },
+            { "Norwegian", SupportedLanguage.Norwegian },
+            { "Polish", SupportedLanguage.Polish },
+            { "Portuguese", SupportedLanguage.Portuguese },
+            { "PortugueseBrazilian", SupportedLanguage.PortugueseBrazilian },
+            { "Romanian", SupportedLanguage.Romanian },
+            { "Russian", SupportedLanguage.Russian },
+            { "Slovak", SupportedLanguage.Slovak },
+            { "Spanish", SupportedLanguage.Spanish },
+            { "SpanishLatin", SupportedLanguage.SpanishLatin },
+            { "Swedish", SupportedLanguage.Swedish },
+            { "Turkish", SupportedLanguage.Turkish },
+            { "Ukrainian", SupportedLanguage.Ukrainian }
+        };
 }

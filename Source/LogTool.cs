@@ -1,12 +1,10 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace AICore;
 
 public static class LogTool
 {
-    class Msg
+    private sealed class Msg
     {
         internal required string txt;
         internal int level;
@@ -14,7 +12,7 @@ public static class LogTool
     }
 
     private static readonly ConcurrentQueue<Msg> log = new();
-    private static readonly List<ISink> sinks = new(); // List of log sinks
+    private static readonly List<ISink> sinks = []; // List of log sinks
 
     public static void AddSink(ISink sink)
     {
@@ -23,7 +21,7 @@ public static class LogTool
 
     public static void RemoveSink(ISink sink)
     {
-        sinks.Remove(sink);
+        _ = sinks.Remove(sink);
     }
 
     public static void Message(string txt, string? sinkName = null)
@@ -78,10 +76,13 @@ public static class LogTool
 
     internal static void Log()
     {
-        while (log.Count > 0 && AICoreMod.Running)
+        while (!log.IsEmpty && AICoreMod.Running)
         {
-            if (log.TryDequeue(out var msg) == false)
+            if (!log.TryDequeue(out Msg? msg))
+            {
                 continue;
+            }
+
             string formattedMessage = FormatMessage(msg.level, msg.txt);
 
             // Write to Verse.Log if no specific sink is targeted
@@ -98,11 +99,13 @@ public static class LogTool
                     case 2:
                         Verse.Log.Error(formattedMessage);
                         break;
+                    default:
+                        break;
                 }
             }
 
             // Write to all registered sinks
-            foreach (var sink in sinks)
+            foreach (ISink sink in sinks)
             {
                 if (msg.sinkName == null || sink.Name == msg.sinkName)
                 {

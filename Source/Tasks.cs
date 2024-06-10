@@ -1,9 +1,4 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using HarmonyLib;
 using RimWorld;
 using Verse;
@@ -17,36 +12,37 @@ public static class UpdateColonySetting
 {
     public static void Task(Map map)
     {
-        var currentWeather = map.weatherManager.curWeather;
-        var currentSeason = GenLocalDate.Season(map);
-        var seasonName = currentSeason.LabelCap();
-        var tileIndex = map.Tile;
-        var tileLatLong = Find.WorldGrid.LongLatOf(tileIndex);
+        if (map == null) throw new ArgumentException("Map is null!");
+
+        WeatherDef currentWeather = map.weatherManager.curWeather;
+        Season currentSeason = GenLocalDate.Season(map);
+        string seasonName = currentSeason.LabelCap();
+        int tileIndex = map.Tile;
+        UnityEngine.Vector2 tileLatLong = Find.WorldGrid.LongLatOf(tileIndex);
         long currentTicks = Find.TickManager.TicksAbs;
-        var fullDateString = GenDate.DateFullStringAt(currentTicks, tileLatLong);
-        var totalDays = GenDate.DaysPassed;
-        var years = totalDays / GenDate.DaysPerYear;
-        var quadrums = (totalDays % GenDate.DaysPerYear) / GenDate.DaysPerQuadrum;
-        var days = (totalDays % GenDate.DaysPerYear) % GenDate.DaysPerQuadrum;
+        string fullDateString = GenDate.DateFullStringAt(currentTicks, tileLatLong);
+        int totalDays = GenDate.DaysPassed;
+        int years = totalDays / GenDate.DaysPerYear;
+        int quadrums = totalDays % GenDate.DaysPerYear / GenDate.DaysPerQuadrum;
+        int days = totalDays % GenDate.DaysPerYear % GenDate.DaysPerQuadrum;
 
-        var settlementName = map.Parent.LabelCap;
-        var biome = map.Biome;
+        string settlementName = map.Parent.LabelCap;
+        BiomeDef biome = map.Biome;
         string biomeName = biome.LabelCap;
-        var biomeDescription = biome.description;
+        string biomeDescription = biome.description;
 
-        var quadrumsMonthsSeasons = new List<string>();
-        for (var quadrumIndex = 0; quadrumIndex < 4; quadrumIndex++)
+        List<string> quadrumsMonthsSeasons = [];
+        for (int quadrumIndex = 0; quadrumIndex < 4; quadrumIndex++)
         {
-            var quadrum = (Quadrum)quadrumIndex;
-            var season = GenDate.Season(
-                (quadrumIndex * GenDate.DaysPerQuadrum + 5) * GenDate.TicksPerDay,
+            Quadrum quadrum = (Quadrum)quadrumIndex;
+            Season season = GenDate.Season(
+                ((quadrumIndex * GenDate.DaysPerQuadrum) + 5) * GenDate.TicksPerDay,
                 tileLatLong
             );
             quadrumsMonthsSeasons.Add($"{quadrum.Label()} is {season}");
         }
-        var quadrumsMonthsSeasonsString = quadrumsMonthsSeasons.Join();
-
-        var message =
+        string quadrumsMonthsSeasonsString = quadrumsMonthsSeasons.Join();
+        _ =
             $"Current Season: {seasonName}, Yearly Seasons Overview: {quadrumsMonthsSeasonsString}\n "
             + $"Each Quadrum lasts 15 days, and there are 4 Quadrums per year\n"
             + $"Today is: {fullDateString}, The current Settlement name is: {settlementName}\n "
@@ -64,13 +60,14 @@ public static class UpdateColonySetting
 //
 public static class UpdateServerStatus
 {
-    public static ServerManager.ServerStatus serverStatusEnum = ServerManager.serverStatusEnum;
-    public static string serverStatus = ServerManager.serverStatus;
+    public static ServerManager.ServerStatus serverStatusEnum =
+        ServerManager.currentServerStatusEnum;
+    public static string serverStatus = ServerManager.currentServerStatus;
 
     public static void Task()
     {
-        serverStatusEnum = ServerManager.serverStatusEnum;
-        serverStatus = ServerManager.serverStatus;
+        serverStatusEnum = ServerManager.currentServerStatusEnum;
+        serverStatus = ServerManager.currentServerStatus;
     }
 }
 
@@ -105,11 +102,11 @@ public static class UpdateItemDescriptions
         new(() => new ConcurrentDictionary<int, ItemStatus>());
 
     private static readonly Lazy<
-        CompressedDictionary<(string Title, string Description)>
+        CachedGZipStorage<(string Title, string Description)>
     > objectValues =
         new(
             () =>
-                new CompressedDictionary<(string Title, string Description)>(
+                new CachedGZipStorage<(string Title, string Description)>(
                     Path.Combine(
                         Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(),
                         "RWAI Items",
@@ -119,37 +116,41 @@ public static class UpdateItemDescriptions
         );
 
     private static ConcurrentDictionary<int, ItemStatus> ObjectStatuses => objectStatuses.Value;
-    private static CompressedDictionary<(string Title, string Description)> ObjectValues =>
+    private static CachedGZipStorage<(string Title, string Description)> ObjectValues =>
         objectValues.Value;
 
     public static ItemStatus GetStatus(int HashCode)
     {
         if (!ObjectStatuses.ContainsKey(HashCode))
-            ObjectStatuses.TryAdd(HashCode, ItemStatus.NotDone);
+        {
+            _ = ObjectStatuses.TryAdd(HashCode, ItemStatus.NotDone);
+        }
         else if (GetValues(HashCode) != null)
+        {
             ObjectStatuses[HashCode] = ItemStatus.Done;
+        }
+
         return ObjectStatuses[HashCode];
     }
 
     public static (string Title, string Description)? GetValues(int HashCode)
     {
-        if (!ObjectStatuses.ContainsKey(HashCode))
-            return null;
-        return ObjectValues.Get(HashCode);
+        return !ObjectStatuses.ContainsKey(HashCode) ? null : ObjectValues.Get(HashCode);
     }
 
     public static void SubmitJob(int HashCode, string XmlDef, string Title, string Description)
     {
-        var artDescriptionJob = new JobRequest.Types.ArtDescriptionJob
-        {
-            HashCode = HashCode,
-            XmlDef = XmlDef,
-            Title = Title,
-            Description = Description
-        };
-        var jobRequest = new JobRequest { ArtDescriptionJob = artDescriptionJob };
+        JobRequest.Types.ArtDescriptionJob artDescriptionJob =
+            new()
+            {
+                HashCode = HashCode,
+                XmlDef = XmlDef,
+                Title = Title,
+                Description = Description
+            };
+        JobRequest jobRequest = new() { ArtDescriptionJob = artDescriptionJob };
         AICoreMod.Client.AddJob(jobRequest, Finish);
-        ObjectStatuses.AddOrUpdate(
+        _ = ObjectStatuses.AddOrUpdate(
             HashCode,
             ItemStatus.Working,
             (key, oldValue) => ItemStatus.Working
@@ -158,36 +159,39 @@ public static class UpdateItemDescriptions
 
     public static async Task Finish(JobResponse response)
     {
+        if (response == null) throw new ArgumentException("Response in Finish callback is null!");
+
         switch (response.JobResultCase)
         {
             case JobResponse.JobResultOneofCase.ArtDescriptionResponse:
-                var result =
+                JobResponse.Types.ArtDescriptionResponse result =
                     response.ArtDescriptionResponse
                     ?? throw new ArgumentException(
                         "ArtDescriptionResponse callback could not retrieve result!"
                     );
                 if (result.Title.NullOrEmpty() || result.Description.NullOrEmpty())
+                {
                     ObjectStatuses.AddOrUpdate(
                         result.HashCode,
                         ItemStatus.NotDone,
                         (key, oldValue) => ItemStatus.NotDone
                     );
+                }
                 else
                 {
-                    await ObjectValues.AddOrUpdateAsync(
-                        result.HashCode,
-                        (result.Title, result.Description)
-                    );
-                    ObjectStatuses.AddOrUpdate(
-                        result.HashCode,
-                        ItemStatus.Done,
-                        (key, oldValue) => ItemStatus.Done
-                    );
 #if DEBUG
                     LogTool.Debug(
                         $"ArtDescriptionResponse callback got response:\n{result.Title}\n{result.Description}"
                     );
 #endif
+                    await ObjectValues
+                        .AddOrUpdateAsync(result.HashCode, (result.Title, result.Description))
+                        .ConfigureAwait(false);
+                    ObjectStatuses.AddOrUpdate(
+                        result.HashCode,
+                        ItemStatus.Done,
+                        (key, oldValue) => ItemStatus.Done
+                    );
                 }
                 break;
             case JobResponse.JobResultOneofCase.None:

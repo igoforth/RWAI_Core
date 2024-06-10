@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using HarmonyLib;
 using UnityEngine;
 using Verse;
@@ -15,7 +10,7 @@ namespace AICore;
 [StaticConstructorOnStartup]
 public static class Main
 {
-    static readonly ConcurrentQueue<Action> actions = new();
+    private static readonly ConcurrentQueue<Action> actions = new();
 
     static Main()
     {
@@ -25,24 +20,31 @@ public static class Main
     public static void Postfix()
     {
         if (GenScene.InEntryScene)
+        {
             _ = Current.Root_Entry.StartCoroutine(Process());
+        }
+
         if (GenScene.InPlayScene)
+        {
             _ = Current.Root_Play.StartCoroutine(Process());
+        }
     }
 
-    static IEnumerator Process()
+    private static IEnumerator Process()
     {
         while (true)
         {
             yield return null;
-            if (actions.TryDequeue(out var action))
+            if (actions.TryDequeue(out Action? action))
+            {
                 action?.Invoke();
+            }
         }
     }
 
     public static async Task Perform(Action action)
     {
-        var tcs = new TaskCompletionSource<bool>();
+        TaskCompletionSource<bool> tcs = new();
 
         actions.Enqueue(() =>
         {
@@ -60,24 +62,26 @@ public static class Main
         // Process the actions in the queue
         while (!tcs.Task.IsCompleted)
         {
-            if (actions.TryDequeue(out var queuedAction))
+            if (actions.TryDequeue(out Action? queuedAction))
+            {
                 queuedAction();
+            }
 
-            await Task.Delay(200);
+            await Task.Delay(200).ConfigureAwait(false);
         }
 
-        await tcs.Task;
+        _ = await tcs.Task.ConfigureAwait(false);
     }
 
     public static async Task<T> Perform<T>(Func<T> action)
     {
-        var tcs = new TaskCompletionSource<T>();
+        TaskCompletionSource<T> tcs = new();
 
         actions.Enqueue(() =>
         {
             try
             {
-                var result = action();
+                T? result = action();
                 tcs.SetResult(result);
             }
             catch (Exception ex)
@@ -89,13 +93,15 @@ public static class Main
         // Process the actions in the queue
         while (!tcs.Task.IsCompleted)
         {
-            if (actions.TryDequeue(out var queuedAction))
+            if (actions.TryDequeue(out Action? queuedAction))
+            {
                 queuedAction();
+            }
 
-            await Task.Delay(200);
+            await Task.Delay(200).ConfigureAwait(false);
         }
 
-        return await tcs.Task;
+        return await tcs.Task.ConfigureAwait(false);
     }
 }
 
@@ -129,7 +135,7 @@ public class AICoreMod : Mod
         // idk if it works but its something to experiment with
         // ConfigurationManager.RefreshSection("runtime");
 
-        var harmony = new Harmony("net.trojan.rimworld.mod.AICore");
+        Harmony harmony = new("net.trojan.rimworld.mod.AICore");
         harmony.PatchAll();
 
         LongEventHandler.ExecuteWhenFinished(() =>
@@ -155,10 +161,10 @@ public class AICoreMod : Mod
         };
     }
 
-    public static bool Running => onQuit.IsCancellationRequested == false;
+    public static bool Running => !onQuit.IsCancellationRequested;
 
     public override void DoSettingsWindowContents(Rect inRect) =>
-        Settings?.DoWindowContents(inRect);
+        AICoreSettings.DoWindowContents(inRect);
 
     public override string SettingsCategory() => "AI Core";
 }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -62,15 +61,24 @@ public class UISink : ISink
         LogMessage(formattedLogMessage, level);
     }
 
-    public void Dispose()
-    {
-        LogTool.RemoveSink(this); // Remove from LogTool's sinks
-    }
-
     private string Parse(string input)
     {
-        // Append to current line
-        currentLine += input;
-        return currentLine;
+        return currentLine += input;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing) LogTool.RemoveSink(this);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~UISink()
+    {
+        Dispose(false);
     }
 }
