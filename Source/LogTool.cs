@@ -119,10 +119,10 @@ public static class LogTool
     {
         string prefix = level switch
         {
-            0 => "[RWAI Message] ",
-            1 => "[RWAI Warning] ",
-            2 => "[RWAI Error] ",
-            _ => "[RWAI Unknown] "
+            0 => "[RWAI Core] [Message] ",
+            1 => "[RWAI Core] [Warning] ",
+            2 => "[RWAI Core] [Error] ",
+            _ => "[RWAI Core] [Unknown] "
         };
         return prefix + txt;
     }

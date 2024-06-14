@@ -49,12 +49,12 @@ public static class Tools
         return des == null
             ? throw new ArgumentNullException(nameof(des))
             : des.def.label.NonEmpty()
-            ? des.def.label
-            : des.def.LabelCap.NonEmpty()
-                ? des.def.LabelCap
-                : des.def.description.NonEmpty()
-                    ? des.def.description
-                    : des.def.defName;
+                ? des.def.label
+                : des.def.LabelCap.NonEmpty()
+                    ? des.def.LabelCap
+                    : des.def.description.NonEmpty()
+                        ? des.def.description
+                        : des.def.defName;
     }
 
     public static string FormatNumber(long num) =>
@@ -164,12 +164,12 @@ public static class Tools
         return pawn == null
             ? throw new ArgumentNullException(nameof(pawn))
             : pawn.HostileTo(Faction.OfPlayer)
-            ? pawn.RaceProps.IsMechanoid
-                ? Strings.mechanoid
-                : Strings.enemy
-            : pawn.IsColonist || pawn.IsColonyMech
-                ? Strings.colonist
-                : Strings.visitor;
+                ? pawn.RaceProps.IsMechanoid
+                    ? Strings.mechanoid
+                    : Strings.enemy
+                : pawn.IsColonist || pawn.IsColonyMech
+                    ? Strings.colonist
+                    : Strings.visitor;
     }
 
     public static string NameAndType(this Pawn pawn)
@@ -179,9 +179,12 @@ public static class Tools
 
     public static string? ToGameStringFromPOVWithType(this LogEntry entry, Pawn pawn)
     {
-        if (pawn == null) throw new ArgumentNullException(nameof(pawn));
-        if (entry == null) throw new ArgumentNullException(nameof(entry));
-        if (!pawn.IsColonist) return null;
+        if (pawn == null)
+            throw new ArgumentNullException(nameof(pawn));
+        if (entry == null)
+            throw new ArgumentNullException(nameof(entry));
+        if (!pawn.IsColonist)
+            return null;
 
         string result = entry.ToGameStringFromPOV(pawn, false);
         Pawn[] pawns = [.. pawn.Map.mapPawns.AllPawnsSpawned];
@@ -284,9 +287,7 @@ public static class Tools
         else if (noun.EndsWith("f") || noun.EndsWith("fe"))
         {
             // Words ending in 'f' or 'fe' may change to "ves" in the plural form
-            return noun.EndsWith("fe")
-                ? $"{noun[..^2]}ves"
-                : $"{noun[..^1]}ves";
+            return noun.EndsWith("fe") ? $"{noun[..^2]}ves" : $"{noun[..^1]}ves";
         }
         // Default pluralization
         else

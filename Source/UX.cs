@@ -35,7 +35,8 @@ public static class UX
     {
         Vector2 size = Text.CalcSize(textLeft);
         Rect rect = list.GetRect(size.y);
-        if (tooltip != null) TooltipHandler.TipRegion(rect, tooltip);
+        if (tooltip != null)
+            TooltipHandler.TipRegion(rect, tooltip);
 
         TextAnchor anchor = Text.Anchor;
         Text.Anchor = TextAnchor.MiddleLeft;
@@ -47,7 +48,8 @@ public static class UX
         Text.Anchor = TextAnchor.MiddleRight;
         Widgets.Label(rect.RightPartPixels(size.x), textRight);
         Text.Anchor = anchor;
-        if (gap > 0) list.Gap(gap);
+        if (gap > 0)
+            list.Gap(gap);
     }
 
     // public static void TextField(

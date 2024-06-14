@@ -1,10 +1,7 @@
 using System.Collections.Concurrent;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Steamworks;
-using UnityEngine;
 using Verse;
-using Verse.Steam;
 
 namespace AICore;
 
@@ -12,6 +9,7 @@ public class JobClient : IDisposable
 {
     private Lazy<JobManager.JobManagerClient>? _lazyClient;
     private Channel? _channel;
+    private string _address = "127.0.0.1:50051";
     private static int jobCounter;
     private static readonly ConcurrentBag<JobTask> _taskList = [];
     private static readonly Lazy<JobClient> _instance = new(() => new JobClient());
@@ -24,30 +22,77 @@ public class JobClient : IDisposable
 
     public void Start(string ip, int port)
     {
-        string address = $"{ip}:{port}";
-        // var channelOptions = new List<ChannelOption>
-        // {
-        //     new(ChannelOptions.MaxSendMessageLength, int.MaxValue),
-        //     new(ChannelOptions.MaxReceiveMessageLength, int.MaxValue),
-        //     new("grpc.keepalive_time_ms", 10000), // 10 seconds
-        //     new("grpc.keepalive_timeout_ms", 5000), // 5 seconds
-        //     new("grpc.keepalive_permit_without_calls", 1), // Keep alive even if there are no active calls
-        //     new("grpc.http2.min_time_between_pings_ms", 10000), // Minimum time between pings
-        //     new("grpc.http2.max_pings_without_data", 0), // Unlimited pings
-        //     new("grpc.http2.max_ping_strikes", 0) // Unlimited ping failures
-        // };
+        UpdateRunningState(true, $"{ip}:{port}");
+    }
 
-        // _channel = new Channel(address, ChannelCredentials.Insecure, channelOptions);
-        _channel = new Channel(address, ChannelCredentials.Insecure);
-        _lazyClient = new Lazy<JobManager.JobManagerClient>(
-            () => new JobManager.JobManagerClient(_channel)
-        );
+    public void UpdateRunningState(bool enabled, string? newAddress = null)
+    {
+        _address = newAddress ?? _address;
+        Tools.SafeAsync(async () =>
+        {
+            await UpdateRunningStateAsync(enabled).ConfigureAwait(false);
+        });
+    }
+
+    public async Task UpdateRunningStateAsync(bool enabled)
+    {
+        // Lock to ensure single operation at a time
+        await _monitorActive.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (enabled)
+            {
+                // Ensure the channel is ready or try to reconnect
+                if (_channel == null || _channel.State == ChannelState.Shutdown || _channel.State == ChannelState.TransientFailure)
+                {
+#if DEBUG
+                    LogTool.Debug("Checking channel state and reconnecting if necessary...");
+#endif
+                    await ReinitializeChannelAsync().ConfigureAwait(false);
+                }
+                if (_lazyClient == null || !_lazyClient.IsValueCreated)
+                {
+                    _lazyClient = new Lazy<JobManager.JobManagerClient>(() => new JobManager.JobManagerClient(_channel));
+                }
+            }
+            else
+            {
+                // Should not run, so ensure resources are gracefully shutdown
+                if (_channel != null)
+                {
+                    await ShutdownChannelAsync().ConfigureAwait(false);
+                }
+            }
+        }
+        finally
+        {
+            _monitorActive.Release();
+        }
+    }
+
+    private async Task ReinitializeChannelAsync()
+    {
+        if (_channel != null && _address != null)
+            await _channel.ShutdownAsync().ConfigureAwait(false);
+        _channel = new Channel(_address, ChannelCredentials.Insecure);
+    }
+
+    private async Task ShutdownChannelAsync()
+    {
+        if (_channel != null)
+            await _channel.ShutdownAsync().ConfigureAwait(false);
+        _channel = null;
+#if DEBUG
+        LogTool.Debug("Channel has been shutdown.");
+#endif
     }
 
     public void AddJob(JobRequest jobRequest, Func<JobResponse, Task> callback)
     {
-        if (_channel == null || _lazyClient == null) return;
-        if (jobRequest == null) return;
+        if (_channel == null || _lazyClient == null)
+            return;
+        if (jobRequest == null)
+            return;
 
         if (jobRequest.JobId == 0)
         {
@@ -56,7 +101,7 @@ public class JobClient : IDisposable
         }
 
         jobRequest.Time = Timestamp.FromDateTime(DateTime.UtcNow);
-        jobRequest.Language = GetLanguage();
+        jobRequest.Language = LanguageMapping.GetLanguage();
 
         try
         {
@@ -79,8 +124,10 @@ public class JobClient : IDisposable
 
     public async Task MonitorJobsAsync()
     {
-        if (_channel == null || _lazyClient == null) return;
-        if (_monitorActive.CurrentCount == 0) return;
+        if (_channel == null || _lazyClient == null)
+            return;
+        if (_monitorActive.CurrentCount == 0)
+            return;
 
         await _monitorActive.WaitAsync().ConfigureAwait(false);
         try
@@ -96,10 +143,7 @@ public class JobClient : IDisposable
                     t.AsyncCall.ResponseAsync == completedTask
                 );
 
-                if (completedJobTask == null)
-                {
-                    continue;
-                }
+                if (completedJobTask == null) continue;
 
                 try
                 {
@@ -121,24 +165,6 @@ public class JobClient : IDisposable
         {
             _ = _monitorActive.Release();
         }
-    }
-
-    private static SupportedLanguage GetLanguage()
-    {
-        return LanguageDatabase.activeLanguage?.folderName is string folderLang
-            && LanguageMapping.LanguageMap.TryGetValue(
-                folderLang,
-                out SupportedLanguage mappedLang1
-            )
-            ? mappedLang1
-            : SteamManager.Initialized
-            && SteamApps.GetCurrentGameLanguage().CapitalizeFirst() is string steamLang
-            && LanguageMapping.LanguageMap.TryGetValue(steamLang, out SupportedLanguage mappedLang2)
-            ? mappedLang2
-            : Application.systemLanguage.ToStringSafe() is string appLang
-            && LanguageMapping.LanguageMap.TryGetValue(appLang, out SupportedLanguage mappedLang3)
-                ? mappedLang3
-                : SupportedLanguage.English;
     }
 
     protected virtual void Dispose(bool disposing)

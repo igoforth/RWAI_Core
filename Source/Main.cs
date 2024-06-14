@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using HarmonyLib;
 using UnityEngine;
 using Verse;
@@ -107,14 +108,15 @@ public static class Main
 
 public class AICoreMod : Mod
 {
-    public static CancellationTokenSource onQuit = new();
+    public static Mod? self;
     public static AICoreSettings? Settings;
+    public static readonly ReadOnlyCollection<string> expansionList = new(["AI Core", "AI Items"]);
+    public static CancellationTokenSource onQuit = new();
+    public static ServerManager Server => _lazyServerManager.Value;
+    public static JobClient Client => _lazyClient.Value;
+    private static readonly Lazy<JobClient> _lazyClient = new(() => JobClient.Instance);
     private static readonly Lazy<ServerManager> _lazyServerManager =
         new(() => ServerManager.Instance);
-    public static ServerManager Server => _lazyServerManager.Value;
-    private static readonly Lazy<JobClient> _lazyClient = new(() => JobClient.Instance);
-    public static JobClient Client => _lazyClient.Value;
-    public static Mod? self;
 
     static AICoreMod() { }
 
@@ -125,11 +127,13 @@ public class AICoreMod : Mod
         LogTool.Debug("AICoreMod: Constructor called");
 #endif
 
+        // Get HW info and set intercepting env vars
+        // this must happen before Settings is initialized
+        // else consider different check in MainMenu patch
+        BootstrapTool.Init();
+
         self = this;
         Settings = GetSettings<AICoreSettings>();
-
-        // Get HW info and set intercepting env vars
-        // BootstrapTool.preInit();
 
         // Force a reload of the runtime assembly binding settings
         // idk if it works but its something to experiment with
@@ -140,17 +144,14 @@ public class AICoreMod : Mod
 
         LongEventHandler.ExecuteWhenFinished(() =>
         {
-            // this will exit early if:
-            // already configured
-            // user setting
-            // no internet
-            BootstrapTool.Run();
-
             if (Settings.IsConfigured)
             {
-                // Should only run after BootstrapTool.Run() finishes
-                // if not, implement connection manager in Client
-                Client.Start("127.0.0.1", 50051);
+                BootstrapTool.UpdateRunningState(Settings.AutoUpdateCheck);
+                if (BootstrapTool.isConfigured is not null and true)
+                {
+                    Client.UpdateRunningState(Settings.Enabled);
+                    Server.UpdateRunningState(Settings.Enabled);
+                }
             }
         });
 
@@ -164,7 +165,7 @@ public class AICoreMod : Mod
     public static bool Running => !onQuit.IsCancellationRequested;
 
     public override void DoSettingsWindowContents(Rect inRect) =>
-        AICoreSettings.DoWindowContents(inRect);
+        Settings!.DoWindowContents(inRect);
 
-    public override string SettingsCategory() => "AI Core";
+    public override string SettingsCategory() => "RimWorldAI";
 }

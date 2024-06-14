@@ -44,6 +44,9 @@
 
         <CollectCoverage>true</CollectCoverage>
         <CoverletOutputFormat>opencover</CoverletOutputFormat>
+
+        <PolySharpIncludeRuntimeSupportedAttributes>true</PolySharpIncludeRuntimeSupportedAttributes>
+        <PolySharpUsePublicAccessibilityForGeneratedTypes>true</PolySharpUsePublicAccessibilityForGeneratedTypes>
     </PropertyGroup>
 
     <ItemGroup>
@@ -67,7 +70,10 @@
         <PackageReference Include="Google.Protobuf" Version="3.27.0" />
         <PackageReference Include="Grpc" Version="2.46.6" />
         <PackageReference Include="Lib.Harmony" Version="2.3.3" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
         <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
+        <PackageReference Include="PolySharp"
+            Version="1.14.1+a7a92a9ddd050275c91c42b711d22cb41c3fbf3d" />
     </ItemGroup>
 
     <ItemGroup Label="Development">
@@ -83,15 +89,11 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="PolySharp"
-            Version="1.14.1+a7a92a9ddd050275c91c42b711d22cb41c3fbf3d">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472"
+            Version="1.0.3">
             <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <!-- <ProjectReference Include="Loader\Loader.csproj" /> -->
     </ItemGroup>
 
     <ItemGroup>
@@ -135,12 +137,10 @@
 
     <ItemGroup>
         <Compile Include="BootstrapTool.cs" />
-        <Compile Include="CompressedDictionary.cs" />
         <Compile Include="Defs.cs" />
         <Compile Include="JobClient.cs" />
+        <Compile Include="Lanczos.cs" />
         <Compile Include="LanguageMapping.cs" />
-        <Compile Include="LogSinkFile.cs" />
-        <Compile Include="LogSinkUI.cs" />
         <Compile Include="LogTool.cs" />
         <Compile Include="Main.cs" />
         <Compile Include="Patches.cs" />
@@ -149,10 +149,20 @@
         <Compile Include="Settings.cs" />
         <Compile Include="Tasks.cs" />
         <Compile Include="Tools.cs" />
+        <Compile Include="Translations.cs" />
         <Compile Include="UnityWebRequestException.cs" />
         <Compile Include="UpdateTask.cs" />
         <Compile Include="UX.cs" />
     </ItemGroup>
+
+    <Target Name="CheckConfiguration" BeforeTargets="Build">
+        <PropertyGroup>
+            <RimWorldVersion>$(MSBuildProjectName)</RimWorldVersion>
+        </PropertyGroup>
+
+        <Message Text="RimWorld version: $(RimWorldVersion)" Importance="high" />
+        <Message Text="Configuration: $(Configuration)" Importance="high" />
+    </Target>
 
     <ItemGroup>
         <Publicize Include="Assembly-CSharp;0Harmony" />
@@ -167,15 +177,6 @@
 
         <Copy SourceFiles="@(CustomAssemblies)" DestinationFolder="$(OutputPath)\shared"
             SkipUnchangedFiles="true" />
-    </Target>
-
-    <Target Name="CheckConfiguration" BeforeTargets="Build">
-        <PropertyGroup>
-            <RimWorldVersion>$(MSBuildProjectName)</RimWorldVersion>
-        </PropertyGroup>
-
-        <Message Text="RimWorld version: $(RimWorldVersion)" Importance="high" />
-        <Message Text="Configuration: $(Configuration)" Importance="high" />
     </Target>
 
     <Target Name="MoveNative" AfterTargets="CopyPublicized">
@@ -215,9 +216,7 @@
             <ILRepackExtra Include="log;wildcards;parallel;target:library" />
             <ILRepackInput Include="$(OutputPath)\*.dll" />
             <ILRepackInput Remove="$(OutputPath)$(AssemblyName).dll" />
-            <ILRepackInput Remove="$(OutputPath)System.Threading.Tasks.Extensions.dll" />
-            <ILRepackLib
-                Include="$(OutputPath)\shared" />
+            <ILRepackLib Include="$(OutputPath)\shared" />
         </ItemGroup>
     </Target>
 
@@ -249,30 +248,50 @@
         <Message Text="New version: $(ModVersion)" />
     </Target>
 
-    <Target Name="CopyToRimWorld" AfterTargets="PostBuildAction"
-        Condition="'$(MOD_PATH)' !=
-    ''">
-        <RemoveDir Directories="$(MOD_PATH)\$(ModFileName)" />
+    <Target Name="ZipMod" AfterTargets="PostBuildAction">
+
+        <PropertyGroup>
+            <BuildDir>..\Build\</BuildDir>
+            <Dir15>..\1.5\</Dir15>
+        </PropertyGroup>
+
         <ItemGroup>
+            <Copy15 Include="..\1.5\**" />
             <CopyAbout Include="..\About\**" />
-            <CopyAssemblies Include="..\Assemblies\**" />
             <CopyTextures Include="..\Textures\**" />
+            <CopyLibraries Include="..\Libraries\**" />
             <CopyLicense Include="..\LICENSE" />
             <CopyReadme Include="..\README.md" />
         </ItemGroup>
+
+        <MakeDir Directories="$(BuildDir)" Condition="!Exists('%(BuildDir.Identity)')" />
+
+        <Copy SourceFiles="@(Copy15)"
+            DestinationFolder="$(BuildDir)\1.5\%(RecursiveDir)" />
         <Copy SourceFiles="@(CopyAbout)"
-            DestinationFolder="$(MOD_PATH)\$(ModFileName)\About\%(RecursiveDir)" />
-        <Copy SourceFiles="@(CopyAssemblies)"
-            DestinationFolder="$(MOD_PATH)\$(ModFileName)\Assemblies\%(RecursiveDir)" />
+            DestinationFolder="$(BuildDir)\About\%(RecursiveDir)" />
         <Copy SourceFiles="@(CopyTextures)"
-            DestinationFolder="$(MOD_PATH)\$(ModFileName)\Textures\%(RecursiveDir)" />
-        <Copy SourceFiles="@(CopyLicense)" DestinationFolder="$(MOD_PATH)\$(ModFileName)" />
-        <Copy SourceFiles="@(CopyReadme)" DestinationFolder="$(MOD_PATH)\$(ModFileName)" />
+            DestinationFolder="$(BuildDir)\Textures\%(RecursiveDir)" />
+        <Copy SourceFiles="@(CopyLibraries)"
+            DestinationFolder="$(BuildDir)\Libraries\%(RecursiveDir)" />
+        <Copy SourceFiles="@(CopyLicense)"
+            DestinationFolder="$(BuildDir)" />
+        <Copy SourceFiles="@(CopyReadme)"
+            DestinationFolder="$(BuildDir)" />
+
+        <ZipDirectory SourceDirectory="$(BuildDir)"
+            DestinationFile="$(BuildDir)\..\$(ModFileName).zip" Overwrite="true" />
+
+        <RemoveDir Directories="$(BuildDir)" />
+        <RemoveDir Directories="$(Dir15)" />
+
     </Target>
 
-    <Target Name="ZipMod" AfterTargets="CopyToRimWorld" Condition="'$(MOD_PATH)' != ''">
-        <ZipDirectory SourceDirectory="$(MOD_PATH)\$(ModFileName)"
-            DestinationFile="$(MOD_PATH)\$(ModFileName).zip" Overwrite="true" />
+    <Target Name="PostClean" AfterTargets="Clean">
+        <!-- obj -->
+        <!-- <RemoveDir Directories="$(BaseIntermediateOutputPath)" /> -->
+        <!-- bin -->
+        <RemoveDir Directories="$(BaseOutputPath)" />
     </Target>
 
 </Project>

@@ -1,3 +1,8 @@
+using Steamworks;
+using UnityEngine;
+using Verse;
+using Verse.Steam;
+
 namespace AICore;
 
 // private static readonly List<string> SupportedAutoSelectLanguages = new List<string> {
@@ -67,4 +72,26 @@ public static class LanguageMapping
             { "Turkish", SupportedLanguage.Turkish },
             { "Ukrainian", SupportedLanguage.Ukrainian }
         };
+
+    public static SupportedLanguage GetLanguage()
+    {
+        return
+            LanguageDatabase.activeLanguage?.folderName is string folderLang
+            && LanguageMap.TryGetValue(
+                folderLang,
+                out SupportedLanguage mappedLang1
+            )
+            ? mappedLang1
+            : SteamManager.Initialized
+            && SteamApps.GetCurrentGameLanguage().CapitalizeFirst() is string steamLang
+            && LanguageMap.TryGetValue(steamLang, out SupportedLanguage mappedLang2)
+                ? mappedLang2
+                : Application.systemLanguage.ToStringSafe() is string appLang
+                && LanguageMap.TryGetValue(
+                    appLang,
+                    out SupportedLanguage mappedLang3
+                )
+                    ? mappedLang3
+                    : SupportedLanguage.English;
+    }
 }

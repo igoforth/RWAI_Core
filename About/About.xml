@@ -1,10 +1,9 @@
 <ModMetaData>
   <name>AI Core</name>
   <author>Trojan</author>
-  <packageId>Trojan.AICore</packageId>
+  <packageId>trojan.aicore</packageId>
   <modVersion>0.0.1.0</modVersion>
   <supportedVersions>
-    <li>1.4</li>
     <li>1.5</li>
   </supportedVersions>
   <loadAfter>

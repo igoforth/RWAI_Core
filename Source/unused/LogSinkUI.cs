@@ -68,7 +68,8 @@ public class UISink : ISink
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing) LogTool.RemoveSink(this);
+        if (disposing)
+            LogTool.RemoveSink(this);
     }
 
     public void Dispose()

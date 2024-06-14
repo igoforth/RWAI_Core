@@ -393,7 +393,9 @@ Libraries/
 Protos/google/
 
 # RimWorld specific
+*.zip
 **/Assemblies/
+Build/
 1.5/
 1.4/
 1.3/

@@ -84,13 +84,11 @@ public class FileSink : ISink
         }
     }
 
-
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
-
 
     ~FileSink()
     {

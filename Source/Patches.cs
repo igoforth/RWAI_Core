@@ -18,12 +18,96 @@ public static class LongEventHandler_LongEventsOnGUI_Patch
     }
 }
 
-// Display AI Server status on main menu
+// Display AI Server status or welcome message at main menu
 //
 [HarmonyPatch(typeof(MainMenuDrawer), nameof(MainMenuDrawer.MainMenuOnGUI))]
 public static class MainMenuDrawer_MainMenuOnGUI_Patch
 {
+    public static bool ShowWelcome => showWelcome;
+    private static bool autoUpdate = AICoreMod.Settings != null && AICoreMod.Settings.AutoUpdateCheck;
+    private static bool showWelcome;
+    private static bool userOverride; // one-time decision per session if !isConfigured
+    private static Texture2D? banner;
     public static void Postfix()
+    {
+        Welcome();
+        ShowStatus();
+    }
+
+    public static void Welcome()
+    {
+        if (userOverride) return;
+        if (AICoreMod.Settings == null) return;
+        if (AICoreMod.self == null) return;
+        showWelcome = BootstrapTool.isConfigured == false;
+        if (!showWelcome) return;
+
+        var background = new Color(0f, 0f, 0f, 0.8f);
+        var screen = new Vector2(UI.screenWidth, UI.screenHeight);
+        var dialogSize = new Vector2(540, 540);
+        var rect = new Rect((screen.x - dialogSize.x) / 2, (screen.y - dialogSize.y) / 2, dialogSize.x, dialogSize.y);
+        var welcome = Translations.Welcome.TryGetValue(LanguageMapping.GetLanguage(), Translations.Welcome[SupportedLanguage.English]);
+
+        Widgets.DrawBoxSolidWithOutline(rect, background, Color.white);
+
+        // Initialize and draw the banner if not already done
+        int rectWidth = Mathf.FloorToInt(rect.width); // Cast rect.width to int for comparison
+        if (banner == null)
+        {
+            _ = Graphics.DownscaleBanner(rectWidth);
+            banner = Graphics.Banner;
+        }
+        else
+        {
+            float imageHeight = banner!.height * (rect.width / banner.width);
+            var imageRect = new Rect(rect.x, rect.y, rect.width, imageHeight);
+            var uvRect = new Rect(0f, 0f, 1f, 1f);
+            Widgets.DrawTexturePart(imageRect, uvRect, Graphics.Banner);
+            rect.y += imageHeight;
+            rect.height -= imageHeight;
+        }
+
+        var anchor = Text.Anchor;
+        var font = Text.Font;
+        Text.Font = GameFont.Small;
+        Text.Anchor = TextAnchor.UpperLeft;
+        Widgets.Label(rect.ExpandedBy(-20, -30), welcome);
+
+        // Checkbox for automatic updates
+        var checkboxRect = new Rect(rect.x + 20, rect.yMax - 80, rect.width - 40, 24);
+        Widgets.CheckboxLabeled(checkboxRect, "Enable automatic updates", ref autoUpdate);
+
+        // Buttons for Continue and Cancel
+        var buttonWidth = 80;
+        var spacing = 10;
+        var buttonRectContinue = new Rect(rect.x + rect.width - (2 * buttonWidth) - spacing - 20, rect.yMax - 40, buttonWidth, 30);
+        var buttonRectCancel = new Rect(rect.x + rect.width - buttonWidth - 20, rect.yMax - 40, buttonWidth, 30);
+
+        if (Widgets.ButtonText(buttonRectContinue, "Continue"))
+        {
+            AICoreMod.Settings.AutoUpdateCheck = autoUpdate; // Apply changes
+            AICoreMod.Settings.Enabled = true;
+            AICoreMod.Settings.Write(); // Save settings if needed
+
+            // Dismiss dialog
+            userOverride = true;
+        }
+
+        if (Widgets.ButtonText(buttonRectCancel, "Cancel"))
+        {
+            AICoreMod.Settings.AutoUpdateCheck = autoUpdate; // Apply changes
+            AICoreMod.Settings.Enabled = false;
+            AICoreMod.Settings.Write(); // Save settings if needed
+
+            // Dismiss dialog
+            userOverride = true;
+        }
+
+        Text.Anchor = anchor;
+        Text.Font = font;
+    }
+
+    public static void ShowStatus()
     {
         Color background = new(0f, 0f, 0f, 0.8f);
         (int sw, int sh) = (UI.screenWidth, UI.screenHeight);
@@ -71,35 +155,6 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
         Text.Font = font;
     }
 }
-
-// public static void Postfix()
-// {
-//     if (showWelcome == false || AICoreMod.Settings.IsConfigured)
-//     {
-//         // UIRoot_Play_UIRootOnGUI_Patch.Postfix();
-//         return;
-//     }
-
-//     var (sw, sh) = (UI.screenWidth, UI.screenHeight);
-//     var (w, h) = (360, 120);
-//     var rect = new Rect((sw - w) / 2, (sh - h) / 2, w, h);
-//     var welcome =
-//         "Welcome to RimGPT. You need to configure the mod before you can use it. Click here.";
-
-//     Widgets.DrawBoxSolidWithOutline(rect, background, Color.white);
-//     if (Mouse.IsOver(rect) && Input.GetMouseButton(0))
-//     {
-//         showWelcome = false;
-//         Find.WindowStack.Add(new Dialog_ModSettings(AICoreMod.self));
-//     }
-//     var anchor = Text.Anchor;
-//     var font = Text.Font;
-//     Text.Font = GameFont.Small;
-//     Text.Anchor = TextAnchor.MiddleCenter;
-//     Widgets.Label(rect.ExpandedBy(-20, 0), welcome);
-//     Text.Anchor = anchor;
-//     Text.Font = font;
-// }
 
 // Transpile our fancy gui into the bottom right
 //
@@ -215,11 +270,13 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
         // Insert new instructions after the found index `j`
         codes.InsertRange(j + 1, newInstructions);
 
-    // print new codes to log
-    // foreach (CodeInstruction instruction in codes.GetRange(i, 15))
-    //     LogTool.Message(instruction.ToString());
+        // print new codes to log
+#if DEBUG
+        foreach (CodeInstruction instruction in codes.GetRange(i, 15))
+            LogTool.Debug(instruction.ToString());
+#endif
 
-    transpiler_return:
+        transpiler_return:
         return codes.AsEnumerable();
 
     transpiler_error:
@@ -282,104 +339,6 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
     }
 }
 
-// Add hook to GenerateImageDescription to inject our description or add to our work queue
-//
-[HarmonyPatch(typeof(CompArt), nameof(CompArt.GenerateImageDescription))]
-public static class CompArt_GenerateImageDescription_Patch
-{
-    private static readonly object _workLock = new();
-
-    public static void Postfix(CompArt __instance, ref TaggedString __result)
-    {
-        if (__instance == null) throw new ArgumentException("Instance in patch is null!");
-        if (UpdateServerStatus.serverStatusEnum != ServerManager.ServerStatus.Online) return;
-
-#if DEBUG
-        LogTool.Debug("Handling CompArt type");
-#endif
-
-        // Determine if we have AI-Generated result for Thing already
-        int hashCode = __instance.GetHashCode();
-#if DEBUG
-        LogTool.Debug($"HashCode: {hashCode}");
-#endif
-
-        UpdateItemDescriptions.ItemStatus itemStatus = UpdateItemDescriptions.GetStatus(hashCode);
-#if DEBUG
-        LogTool.Debug($"ItemStatus: {itemStatus}");
-#endif
-
-        switch (itemStatus)
-        {
-            case UpdateItemDescriptions.ItemStatus.Done:
-                (string Title, string Description)? value = UpdateItemDescriptions.GetValues(
-                    hashCode
-                );
-                if (value.HasValue)
-                {
-#if DEBUG
-                    LogTool.Debug(
-                        $"Value found: Title = {value.Value.Title}, Description = {value.Value.Description}"
-                    );
-#endif
-                    __instance.titleInt = value.Value.Title;
-                    __result = (TaggedString)value.Value.Description;
-                    if (ITab_Art.cachedImageSource == __instance)
-                    {
-#if DEBUG
-                        LogTool.Debug("Updating cached image description");
-#endif
-                        ITab_Art.cachedImageDescription = (TaggedString)value.Value.Description;
-                    }
-                }
-                break;
-
-            case UpdateItemDescriptions.ItemStatus.NotDone:
-                lock (_workLock)
-                {
-#if DEBUG
-                    LogTool.Debug("ItemStatus is NotDone. Submitting job.");
-#endif
-                    // Send thing as job with relevant info
-                    // 1. send "Thing" from ScribeSaver.DebugOutputFor()
-                    // 2. send Title, Description from CompArt.GenerateTitle(), CompArt.GenerateImageDescription()
-                    string myDef = Scribe.saver.DebugOutputFor(__instance.parent);
-#if DEBUG
-                    LogTool.Debug($"myDef: {myDef}");
-#endif
-                    TaggedString description = __instance.taleRef.GenerateText(
-                        TextGenerationPurpose.ArtDescription,
-                        __instance.Props.descriptionMaker
-                    );
-#if DEBUG
-                    LogTool.Debug($"Generated description: {description}");
-#endif
-                    string title = GenText.CapitalizeAsTitle(
-                        __instance.taleRef.GenerateText(
-                            TextGenerationPurpose.ArtName,
-                            __instance.Props.nameMaker
-                        )
-                    );
-#if DEBUG
-                    LogTool.Debug($"Generated title: {title}");
-#endif
-                    UpdateItemDescriptions.SubmitJob(hashCode, myDef, title, description);
-#if DEBUG
-                    LogTool.Debug("Job submitted.");
-#endif
-                }
-                break;
-
-            case UpdateItemDescriptions.ItemStatus.Working:
-            default:
-#if DEBUG
-                LogTool.Debug("ItemStatus is Working or default case.");
-#endif
-                break;
-        }
-    }
-}
-
 // // Token: 0x0600A8B8 RID: 43192 RVA: 0x003C014C File Offset: 0x003BE34C
 // public static void DoPlaySettings(WidgetRow rowVisibility, bool worldView, ref float curBaseY)
 // {
@@ -426,7 +385,9 @@ public static partial class GenerallTimeUpdates_Patch
         new()
         {
             { "ServerStatus", new UpdateTaskTime(() => 2.0f, UpdateServerStatus.Task, false) },
-            { "MonitorJobs", new UpdateTaskTime(() => 5.0f, MonitorJobStatus.Task, false) }
+            { "MonitorJobs", new UpdateTaskTime(() => 5.0f, MonitorJobStatus.Task, false) },
+            // { "RefreshExpansions", new UpdateTaskTime(() => 60.0f, RefreshExpansions.Task, false) },
+            // { "BakeImages", new UpdateTaskTime(() => 5.0f, BakeImages.Task, false) }
         };
 
     public static void Postfix()

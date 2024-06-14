@@ -33,7 +33,7 @@ public class ServerManager : IDisposable
     public enum ServerStatus
     {
         Online,
-        Busy,
+        Updating,
         Error,
         Offline
     }
@@ -56,16 +56,25 @@ public class ServerManager : IDisposable
         }
     }
 
+    public void UpdateRunningState(bool enabled)
+    {
+        if (enabled)
+            Start();
+        else
+            Stop();
+    }
+
     public void Start()
     {
         lock (lockObject)
         {
-            if (Running && currentServerStatusEnum == ServerStatus.Online)
-            {
-                return; // Avoid starting if already running
-            }
+            // Avoid starting if already running
+            if (Running && currentServerStatusEnum == ServerStatus.Online) return;
 
+            // Reset the CancellationTokenSource when starting
+            onQuit = new CancellationTokenSource();
             // logSink = FileSink.Instance;
+
             StartProcess(shellBin, serverArgs);
         }
     }
@@ -74,10 +83,8 @@ public class ServerManager : IDisposable
     {
         lock (lockObject)
         {
-            if (!Running || currentServerStatusEnum == ServerStatus.Offline)
-            {
-                return; // Avoid stopping if not running
-            }
+            // Avoid stopping if not running
+            if (!Running || currentServerStatusEnum == ServerStatus.Offline) return;
 
             onQuit.Cancel();
             if (serverProcess != null && !serverProcess.HasExited)
@@ -86,6 +93,8 @@ public class ServerManager : IDisposable
                 serverProcess.Close();
             }
             // logSink.Dispose();
+            onQuit.Dispose();  // Properly dispose of the CancellationTokenSource
+            onQuit = new CancellationTokenSource();  // Ready for next start
         }
     }
 
@@ -160,7 +169,8 @@ public class ServerManager : IDisposable
         // Run the server process
         Tools.SafeAsync(async () =>
         {
-            if (serverProcess == null) throw new InvalidOperationException(
+            if (serverProcess == null)
+                throw new InvalidOperationException(
                     "Server is trying to start without being initialized!"
                 );
 
@@ -175,7 +185,8 @@ public class ServerManager : IDisposable
             UpdateServerStatus(ServerStatus.Online);
             LogTool.Message("AI Server started! OMG it actually started, whattttttt");
 
-            while (Running && AICoreMod.Running) await Tools.SafeWait(200).ConfigureAwait(false);
+            while (Running && AICoreMod.Running)
+                await Tools.SafeWait(200).ConfigureAwait(false);
 
             ProcessInterruptHelper.SendSigINT(serverProcess);
             serverProcess.WaitForExit();
@@ -186,7 +197,8 @@ public class ServerManager : IDisposable
     // Handle Exited event and display process information.
     private void ProcessExited(object sender, EventArgs e)
     {
-        if (serverProcess == null) return;
+        if (serverProcess == null)
+            return;
 
 #if DEBUG
         LogTool.Debug($"Exit time    : {serverProcess.ExitTime}");
