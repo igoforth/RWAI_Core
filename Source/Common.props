@@ -115,16 +115,12 @@
 
     <!-- This is commented as part of finding http solutions with Unity compatibility. I ended up
     using UnityWebRequest in BootstrapTool.cs -->
-    <!-- <ItemGroup>
-		<ProjectReference
-			Include="..\External\YetAnotherHttpHandler\src\YetAnotherHttpHandler\YetAnotherHttpHandler.csproj"
-	/>
+    <!-- <ItemGroup> <ProjectReference
+    Include="..\External\YetAnotherHttpHandler\src\YetAnotherHttpHandler\YetAnotherHttpHandler.csproj"
+    />
 	</ItemGroup> -->
 
-    <!-- <ItemGroup>
-		<PackageReference
-			Include="YetAnotherHttpHandler"
-			Version="0.1.*">
+    <!-- <ItemGroup> <PackageReference Include="YetAnotherHttpHandler" Version="0.1.*">
 			<HintPath>
 				..\External\Packages</HintPath>
 		</PackageReference>
@@ -149,7 +145,6 @@
         <Compile Include="Settings.cs" />
         <Compile Include="Tasks.cs" />
         <Compile Include="Tools.cs" />
-        <Compile Include="Translations.cs" />
         <Compile Include="UnityWebRequestException.cs" />
         <Compile Include="UpdateTask.cs" />
         <Compile Include="UX.cs" />
@@ -188,8 +183,7 @@
         <ItemGroup>
             <ArmItems Include="libgrpc_csharp_ext.arm64.dylib" />
             <NativeItems
-                Include="grpc_csharp_ext.x64.dll;grpc_csharp_ext.x86.dll;libgrpc_csharp_ext.x64.dylib;libgrpc_csharp_ext.x64.so"
-            />
+                Include="grpc_csharp_ext.x64.dll;grpc_csharp_ext.x86.dll;libgrpc_csharp_ext.x64.dylib;libgrpc_csharp_ext.x64.so" />
         </ItemGroup>
 
         <MakeDir Directories="$(LibOutputPath)" Condition="!Exists('$(LibOutputPath)')" />
@@ -258,26 +252,24 @@
         <ItemGroup>
             <Copy15 Include="..\1.5\**" />
             <CopyAbout Include="..\About\**" />
-            <CopyTextures Include="..\Textures\**" />
+            <CopyLanguages Include="..\Languages\**" />
             <CopyLibraries Include="..\Libraries\**" />
+            <CopyTextures Include="..\Textures\**" />
             <CopyLicense Include="..\LICENSE" />
             <CopyReadme Include="..\README.md" />
         </ItemGroup>
 
         <MakeDir Directories="$(BuildDir)" Condition="!Exists('%(BuildDir.Identity)')" />
 
-        <Copy SourceFiles="@(Copy15)"
-            DestinationFolder="$(BuildDir)\1.5\%(RecursiveDir)" />
-        <Copy SourceFiles="@(CopyAbout)"
-            DestinationFolder="$(BuildDir)\About\%(RecursiveDir)" />
-        <Copy SourceFiles="@(CopyTextures)"
-            DestinationFolder="$(BuildDir)\Textures\%(RecursiveDir)" />
+        <Copy SourceFiles="@(Copy15)" DestinationFolder="$(BuildDir)\1.5\%(RecursiveDir)" />
+        <Copy SourceFiles="@(CopyAbout)" DestinationFolder="$(BuildDir)\About\%(RecursiveDir)" />
+        <Copy SourceFiles="@(CopyLanguages)"
+            DestinationFolder="$(BuildDir)\Languages\%(RecursiveDir)" />
         <Copy SourceFiles="@(CopyLibraries)"
             DestinationFolder="$(BuildDir)\Libraries\%(RecursiveDir)" />
-        <Copy SourceFiles="@(CopyLicense)"
-            DestinationFolder="$(BuildDir)" />
-        <Copy SourceFiles="@(CopyReadme)"
-            DestinationFolder="$(BuildDir)" />
+        <Copy SourceFiles="@(CopyTextures)" DestinationFolder="$(BuildDir)\Textures\%(RecursiveDir)" />
+        <Copy SourceFiles="@(CopyLicense)" DestinationFolder="$(BuildDir)" />
+        <Copy SourceFiles="@(CopyReadme)" DestinationFolder="$(BuildDir)" />
 
         <ZipDirectory SourceDirectory="$(BuildDir)"
             DestinationFile="$(BuildDir)\..\$(ModFileName).zip" Overwrite="true" />

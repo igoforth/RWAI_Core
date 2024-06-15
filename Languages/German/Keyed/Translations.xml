@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>Willkommen bei RimWorldAI!
+
+Sie haben das Mod heruntergeladen, jetzt bringen wir die KI zum Laufen! "Fortfahren" wird die notwendigen KI-Dateien im Hintergrund herunterladen. Dies könnte einige Zeit in Anspruch nehmen, da die Dateien zwischen 2 und 8 GB groß sind - danke für Ihre Geduld!
+
+Sobald das Setup abgeschlossen ist, kann RimWorldAI vollständig offline betrieben werden. Wenn Sie automatische Updates deaktivieren, ist keine Internetverbindung erforderlich, wodurch Ihre KI-Interaktionen ebenso privat bleiben wie die Geheimnisse Ihrer Kolonie!
+
+Möchten Sie Updates lieber nach Ihrem eigenen Zeitplan prüfen? Gehen Sie einfach zu den Einstellungen, um manuell zu prüfen, wann Sie möchten.
+
+Aktivieren Sie automatische Updates, um Ihre KI mühelos in bester Form zu halten und sicherzustellen, dass Sie stets über die neuesten Funktionen verfügen.
+
+Viel Spaß beim Erzählen von Geschichten und möge Ihre Kolonie gedeihen!</RWAI_Welcome><RWAI_AutoUpdate>Automatisch nach Updates suchen:</RWAI_AutoUpdate><RWAI_Online>KI-Server online.</RWAI_Online><RWAI_Busy>KI-Server beschäftigt</RWAI_Busy><RWAI_Error>AI-Serverfehler</RWAI_Error><RWAI_Offline>AI-Server offline.</RWAI_Offline><RWAI_Reset>Dies wird versuchen, Probleme zu beheben, indem die KI-Dateien gelöscht und erneut heruntergeladen werden.</RWAI_Reset></LanguageData>

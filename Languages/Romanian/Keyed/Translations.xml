@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>Bine ai venit la RimWorldAI!
+
+Ai descărcat mod-ul, acum să pornim AI-ul! Apăsând "Continuare" vei descărca fișierele necesare AI-ului în fundal. Acest proces poate dura ceva timp deoarece fișierele au între 2 și 8 GB - mulțumim pentru răbdare!
+
+Odată configurat, RimWorldAI poate funcționa complet offline. Dacă dezactivezi actualizările automate, nu vei avea nevoie de conexiune la internet, păstrând interacțiunile tale cu AI-ul la fel de private ca secretele coloniei tale!
+
+Preferi să verifici actualizările pe cont propriu? Mergi în setări pentru a verifica manual ori de câte ori dorești.
+
+Activează actualizările automate pentru a menține AI-ul la cea mai bună performanță, asigurându-te că ai întotdeauna cele mai bune și mai noi funcții.
+
+Povestiri plăcute și să înflorească colonia ta!</RWAI_Welcome><RWAI_AutoUpdate>Verifică automat actualizările:</RWAI_AutoUpdate><RWAI_Online>Server AI Online</RWAI_Online><RWAI_Busy>Server AI ocupat</RWAI_Busy><RWAI_Error>Eroare server AI</RWAI_Error><RWAI_Offline>Serverul AI este offline</RWAI_Offline><RWAI_Reset>Aceasta va încerca să rezolve problemele prin ștergerea și redescărcarea fișierelor AI.</RWAI_Reset></LanguageData>

@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>RimWorldAI'ye hoş geldiniz!
+
+Modu indirdiniz, şimdi yapay zekayı çalıştıralım! "Devam Et" butonuna tıklayarak gerekli yapay zeka dosyalarının arka planda indirilmesini başlatabilirsiniz. Bu işlem biraz zaman alabilir zira dosyaların boyutu 2 ile 8 GB arasında değişmektedir - sabrınız için teşekkürler!
+
+Kurulum tamamlandıktan sonra, RimWorldAI tamamen çevrimdışı çalışabilir. Otomatik güncellemeleri devre dışı bırakırsanız, internet bağlantısına gerek kalmaz ve yapay zeka etkileşimleriniz koloninizin sırları kadar gizli kalır!
+
+Güncellemeleri kendi takviminize göre mi kontrol etmek istiyorsunuz? İstediğiniz zaman manuel olarak kontrol edebilmek için ayarlara gitmeniz yeterli.
+
+Yapay zekanızı en iyi ve en yeni özelliklerle donatmak için otomatik güncellemeleri etkinleştirin ve sorunsuz bir şekilde güncel kalmasını sağlayın.
+
+Mutlu hikayeler ve koloninizin başarılarla dolu olması dileğiyle!</RWAI_Welcome><RWAI_AutoUpdate>Güncellemeleri Otomatik Olarak Kontrol Et:</RWAI_AutoUpdate><RWAI_Online>AI Sunucusu Çevrimiçi</RWAI_Online><RWAI_Busy>AI Sunucusu Meşgul</RWAI_Busy><RWAI_Error>AI Sunucu Hatası</RWAI_Error><RWAI_Offline>Yapay Zeka Sunucusu Çevrimdışı</RWAI_Offline><RWAI_Reset>Bu, sorunları gidermeye çalışmak için AI dosyalarını silip yeniden indirir.</RWAI_Reset></LanguageData>

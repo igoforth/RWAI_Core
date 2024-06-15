@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>RimWorldAIへようこそ！
+
+モッドをダウンロードしましたので、次にAIを起動しましょう！「続行」をクリックすると、必要なAIファイルがバックグラウンドでダウンロードされます。ファイルのサイズは2～8GBのため、少々時間がかかるかもしれません。ご理解いただきありがとうございます！
+
+セットアップが完了すると、RimWorldAIは完全にオフラインで動作します。自動更新を無効にすると、インターネット接続は不要になり、AIとのやり取りはあなたのコロニーの秘密同様にプライベートになります！
+
+自分のペースでアップデートを確認したいですか？設定に移動し、いつでも手動で確認できます。
+
+自動更新を有効にして、AIを最新の状態に保ち、最高の機能を享受し続けましょう。
+
+楽しいストーリーテリングを、そしてコロニーの繁栄を願っています！</RWAI_Welcome><RWAI_AutoUpdate>自動的に更新をチェックする</RWAI_AutoUpdate><RWAI_Online>AIサーバーオンライン</RWAI_Online><RWAI_Busy>AIサーバーが忙しい</RWAI_Busy><RWAI_Error>AI サーバーエラー</RWAI_Error><RWAI_Offline>AIサーバーオフライン</RWAI_Offline><RWAI_Reset>これは、AIファイルの削除と再ダウンロードによって問題の修正を試みます。</RWAI_Reset></LanguageData>

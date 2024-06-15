@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>RimWorldAI에 오신 것을 환영합니다!
+
+모드를 다운로드하셨으니 이제 AI를 실행해 봅시다! "계속"을 클릭하면 필요한 AI 파일이 백그라운드에서 다운로드됩니다. 파일 크기는 2GB에서 8GB 사이로 시간이 좀 걸릴 수 있으니 인내심을 가져주세요!
+
+설치가 완료되면 RimWorldAI를 완전히 오프라인으로 실행할 수 있습니다. 자동 업데이트를 비활성화하면 인터넷 연결이 필요 없으며, AI 상호작용이 당신의 식민지 비밀만큼이나 개인적으로 유지됩니다!
+
+업데이트를 직접 확인하는 것을 선호하신다면 설정으로 가서 원할 때마다 수동으로 확인할 수 있습니다.
+
+자동 업데이트를 활성화하여 AI를 항상 최상의 상태로 유지하고 최신 기능을 이용해보세요.
+
+행복한 스토리텔링 되시길 바라며 여러분의 식민지가 번창하길 기원합니다!</RWAI_Welcome><RWAI_AutoUpdate>자동으로 업데이트 확인:</RWAI_AutoUpdate><RWAI_Online>AI 서버 온라인</RWAI_Online><RWAI_Busy>AI 서버가 바쁩니다.</RWAI_Busy><RWAI_Error>AI 서버 오류</RWAI_Error><RWAI_Offline>AI 서버 오프라인</RWAI_Offline><RWAI_Reset>이것은 문제를 해결하기 위해 AI 파일을 삭제하고 다시 다운로드하려고 시도할 것입니다.</RWAI_Reset></LanguageData>

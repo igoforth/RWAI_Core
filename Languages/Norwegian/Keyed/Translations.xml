@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>Velkommen til RimWorldAI!
+
+Du har lastet ned modden, la oss få AI-en i gang! "Fortsett" vil laste ned de nødvendige AI-filene i bakgrunnen. Dette kan ta litt tid da filene er mellom 2 og 8 GB - takk for din tålmodighet!
+
+Når det er satt opp, kan RimWorldAI kjøre helt offline. Hvis du deaktiverer automatiske oppdateringer, er det ikke behov for internettilkobling, noe som holder dine AI-interaksjoner like private som dine kolonighemmeligheter!
+
+Foretrekker du å sjekke for oppdateringer når det passer deg? Bare gå til innstillinger for å sjekke manuelt når du ønsker.
+
+Aktiver automatiske oppdateringer for å enkelt holde AI-en i toppform, og sikre at du alltid har de beste og nyeste funksjonene.
+
+God historiefortelling og måtte din koloni blomstre!</RWAI_Welcome><RWAI_AutoUpdate>Sjekk etter oppdateringer automatisk:</RWAI_AutoUpdate><RWAI_Online>AI-server online</RWAI_Online><RWAI_Busy>AI-server opptatt</RWAI_Busy><RWAI_Error>AI-serverfeil</RWAI_Error><RWAI_Offline>AI-server frakoblet</RWAI_Offline><RWAI_Reset>Dette vil forsøke å fikse problemer ved å slette og laste ned AI-filene på nytt.</RWAI_Reset></LanguageData>

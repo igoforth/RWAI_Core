@@ -20,6 +20,7 @@ public static class LongEventHandler_LongEventsOnGUI_Patch
 
 // Display AI Server status or welcome message at main menu
 //
+[StaticConstructorOnStartup]
 [HarmonyPatch(typeof(MainMenuDrawer), nameof(MainMenuDrawer.MainMenuOnGUI))]
 public static class MainMenuDrawer_MainMenuOnGUI_Patch
 {
@@ -27,11 +28,34 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
     private static bool autoUpdate = AICoreMod.Settings != null && AICoreMod.Settings.AutoUpdateCheck;
     private static bool showWelcome;
     private static bool userOverride; // one-time decision per session if !isConfigured
-    private static Texture2D? banner;
+    private static Texture2D Banner;
+    static MainMenuDrawer_MainMenuOnGUI_Patch()
+    {
+        LoadBanner(out Banner);
+    }
     public static void Postfix()
     {
         Welcome();
         ShowStatus();
+    }
+
+    private static void LoadBanner(out Texture2D Banner)
+    {
+        Banner = new(1, 1);
+        var bannerPath = Path.Combine(Directory.GetParent(AICoreMod.self!.Content.ModMetaData.PreviewImagePath).FullName, "WelcomeBanner.jpg");
+        if (File.Exists(bannerPath))
+        {
+            var imageData = File.ReadAllBytes(bannerPath);
+            _ = Banner.LoadImage(imageData);
+        }
+        else LogTool.Error("Banner image not found at: " + bannerPath);
+    }
+
+    public static int DownscaleBanner(int targetWidth)
+    {
+        var scaleDivisor = (double)(Banner.width / targetWidth);
+        Banner = LanczosResize.DownsampleImage(Banner, scaleDivisor) ?? new(1, targetWidth);
+        return Banner.height;
     }
 
     public static void Welcome()
@@ -46,26 +70,19 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
         var screen = new Vector2(UI.screenWidth, UI.screenHeight);
         var dialogSize = new Vector2(540, 540);
         var rect = new Rect((screen.x - dialogSize.x) / 2, (screen.y - dialogSize.y) / 2, dialogSize.x, dialogSize.y);
-        var welcome = Translations.Welcome.TryGetValue(LanguageMapping.GetLanguage(), Translations.Welcome[SupportedLanguage.English]);
+        var welcome = "RWAI_Welcome".Translate();
 
         Widgets.DrawBoxSolidWithOutline(rect, background, Color.white);
 
         // Initialize and draw the banner if not already done
         int rectWidth = Mathf.FloorToInt(rect.width); // Cast rect.width to int for comparison
-        if (banner == null)
-        {
-            _ = Graphics.DownscaleBanner(rectWidth);
-            banner = Graphics.Banner;
-        }
-        else
-        {
-            float imageHeight = banner!.height * (rect.width / banner.width);
-            var imageRect = new Rect(rect.x, rect.y, rect.width, imageHeight);
-            var uvRect = new Rect(0f, 0f, 1f, 1f);
-            Widgets.DrawTexturePart(imageRect, uvRect, Graphics.Banner);
-            rect.y += imageHeight;
-            rect.height -= imageHeight;
-        }
+        _ = DownscaleBanner(rectWidth);
+        float imageHeight = Banner.height * (rect.width / Banner.width);
+        var imageRect = new Rect(rect.x, rect.y, rect.width, imageHeight);
+        var uvRect = new Rect(0f, 0f, 1f, 1f);
+        Widgets.DrawTexturePart(imageRect, uvRect, Banner);
+        rect.y += imageHeight;
+        rect.height -= imageHeight;
 
         var anchor = Text.Anchor;
         var font = Text.Font;
@@ -75,7 +92,7 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
 
         // Checkbox for automatic updates
         var checkboxRect = new Rect(rect.x + 20, rect.yMax - 80, rect.width - 40, 24);
-        Widgets.CheckboxLabeled(checkboxRect, "Enable automatic updates", ref autoUpdate);
+        Widgets.CheckboxLabeled(checkboxRect, "RWAI_AutoUpdate".Translate(), ref autoUpdate);
 
         // Buttons for Continue and Cancel
         var buttonWidth = 80;

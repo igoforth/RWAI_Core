@@ -24,7 +24,8 @@ namespace AICore;
 // ./.version
 public static class BootstrapTool // : IDisposable
 {
-    public static CancellationTokenSource? onQuit;
+    public static CancellationTokenSource onQuit = new();
+    public static bool Running => !onQuit.IsCancellationRequested;
     public static bool? internetAccess;
     public static bool? isConfigured;
     private const string releaseString =
@@ -32,31 +33,19 @@ public static class BootstrapTool // : IDisposable
     private const string bootstrapString =
         "https://github.com/igoforth/RWAILib/releases/latest/download/bootstrap.py";
     private const string pythonString = "https://cosmo.zip/pub/cosmos/bin/python";
-    private static string oldRelease = "_";
-    private static string newRelease = "_";
     private static OSPlatform platform;
     private static Architecture arch;
     private static string? shellBin;
     private static string? modPath;
     private static string? pythonPath;
     private static string? llamaPath;
-    // private static TaskCompletionSource<bool>? shouldUpdate;
-    // private static TaskCompletionSource<bool>? bootstrapDone;
-    private static Process? bootstrapProcess;
     private static readonly object lockObject = new();
+    private static Process? bootstrapProcess;
 
     private enum ContentType
     {
         File,
         Content
-    }
-
-    public static void UpdateRunningState(bool enabled)
-    {
-        if (enabled)
-            Start();
-        else
-            Stop();
     }
 
     public static void Init()
@@ -105,12 +94,18 @@ public static class BootstrapTool // : IDisposable
         return false;
     }
 
+    public static void UpdateRunningState(bool enabled)
+    {
+        if (enabled) Start();
+        else Stop();
+    }
+
     public static void Reset()
     {
         lock (lockObject)
         {
             // Stop only if the bootstrap is ongoing
-            if (onQuit != null) Stop();
+            if (Running) Stop();
 
             try
             {
@@ -133,10 +128,10 @@ public static class BootstrapTool // : IDisposable
         lock (lockObject)
         {
             // Avoid starting if already running
-            if (onQuit != null && !onQuit.IsCancellationRequested) return;
+            if (Running && ServerManager.currentServerStatusEnum == ServerManager.ServerStatus.Busy) return;
 
             // Reset the CancellationTokenSource when starting
-            onQuit?.Dispose();  // Ensure previous token source is disposed if existing
+            onQuit.Dispose();
             onQuit = new CancellationTokenSource();
 
             // Start the bootstrap process
@@ -148,13 +143,12 @@ public static class BootstrapTool // : IDisposable
     {
         lock (lockObject)
         {
-            // Avoid stopping if not running or already completed
-            if (onQuit == null || onQuit.IsCancellationRequested) return;
+            // Avoid stopping if cancellation is not requested
+            if (!Running) return;
 
             // Properly dispose of our master CancellationTokenSource
             onQuit.Cancel();
             onQuit.Dispose();
-            onQuit = null;
         }
     }
 
@@ -190,97 +184,7 @@ public static class BootstrapTool // : IDisposable
         return true;
     }
 
-    // compare github api against pinned "./.version"
-    private static async void CheckServerUpdate(TaskCompletionSource<bool> shouldUpdate)
-    {
-        bool triggerUpdate = false;
-        try
-        {
-            // check for ".version" file
-            var versionPath = Path.Combine(modPath, ".version");
-            if (!File.Exists(versionPath))
-            {
-                triggerUpdate = true;
-                goto setUpdate;
-            }
 
-            // check for internet
-            internetAccess = CheckInternet();
-            if (internetAccess == false)
-            {
-                triggerUpdate = false;
-                goto setUpdate;
-            }
-
-            // compare ".version" file with latest
-            var releaseUrl = new Uri(releaseString);
-            var userAgent = "igoforth/RWAILib";
-            using (var reader = File.OpenText(versionPath))
-            {
-                Task<string> newReleaseT = Download(ContentType.Content, releaseUrl, userAgent);
-                Task<string> oldReleaseT = reader.ReadToEndAsync();
-                _ = await Task.WhenAll(newReleaseT, oldReleaseT).ConfigureAwait(false);
-
-                newRelease = newReleaseT.Result;
-                oldRelease = oldReleaseT.Result;
-
-                var json = JObject.Parse(newRelease);
-                string tag_name = (string)json["tag_name"];
-                if (tag_name != oldRelease)
-                {
-                    triggerUpdate = true;
-                }
-            }
-        }
-        catch (FileNotFoundException ex)
-        {
-            triggerUpdate = true;
-#if RW15
-            LogTool.Error($"File not found: {ex}");
-#else
-            LogTool.Error("File not found!");
-#endif
-        }
-        catch (UriFormatException ex)
-        {
-            triggerUpdate = false;
-#if RW15
-            LogTool.Error($"Invalid URI format: {ex}");
-#else
-            LogTool.Error("File not found!");
-#endif
-        }
-        catch (UnityWebRequestException ex)
-        {
-            triggerUpdate = false;
-#if RW15
-            LogTool.Error($"HTTP request error: {ex}");
-#else
-            LogTool.Error("File not found!");
-#endif
-        }
-        catch (JsonException ex)
-        {
-            triggerUpdate = false;
-#if RW15
-            LogTool.Error($"JSON parsing error: {ex}");
-#else
-            LogTool.Error("File not found!");
-#endif
-        }
-        catch (IOException ex)
-        {
-            triggerUpdate = false;
-#if RW15
-            LogTool.Error($"IO error: {ex}");
-#else
-            LogTool.Error("File not found!");
-#endif
-        }
-
-    setUpdate:
-        _ = triggerUpdate ? shouldUpdate.TrySetResult(true) : shouldUpdate.TrySetResult(false);
-    }
 
     private static (OSPlatform, Architecture) GetSystemInfo()
     {
@@ -364,99 +268,144 @@ public static class BootstrapTool // : IDisposable
     private static void Run(CancellationToken token)
     {
         if (AICoreMod.Settings == null) return;
-
-        // Everything required to establish runtime vars
-        // like correct paths, libs, etc
         if (isConfigured == null) Init();
 
-        // #pragma warning disable CA2000 // Dispose objects before losing scope
-        //         BootstrapTool bt = new();
-        // #pragma warning restore CA2000 // Dispose objects before losing scope
-        var shouldUpdate = new TaskCompletionSource<bool>();
-        var updateTask = shouldUpdate.Task;
-        var bootstrapDone = new TaskCompletionSource<bool>();
-        var bootstrapTask = bootstrapDone.Task;
-
-        // Check for updates
-        Tools.SafeAsync(async () =>
+        try
         {
-            CheckServerUpdate(shouldUpdate);
-
-            // await finish
-            while (!updateTask.IsCompleted)
-            {
-                await Tools.SafeWait(200).ConfigureAwait(false);
-                if (token.IsCancellationRequested || !AICoreMod.Running)
-                {
-                    _ = shouldUpdate.TrySetCanceled(token);
-                    return;
-                }
-            }
-        });
-
-        // Run bootstrapper
-        Tools.SafeAsync(async () =>
+            // Start the asynchronous operation for checking and applying updates,
+            // then bootstrapping, and finally additional configurations.
+            _ = Task.Run(async () => await ManageBootstrapAsync(token).ConfigureAwait(false), token);
+        }
+        catch (Exception ex)
         {
-            var result = await updateTask.ConfigureAwait(false);
+            LogTool.Error("Error during bootstrap process:" + ex.Message);
+        }
+    }
 
-            // error checks
-            if (updateTask.IsCanceled || updateTask.IsFaulted)
-            {
-                LogTool.Error("Update process faulted, will not start server.");
-                _ = bootstrapDone.TrySetCanceled();
-                return;
-            }
-
-            // no internet
-            if (!result)
-            {
-                LogTool.Message($"You are running version {oldRelease}");
-                _ = bootstrapDone.TrySetResult(true);
-                return;
-            }
-
-            BootstrapAsync(bootstrapDone, token);
-
-            // await finish
-            while (!bootstrapTask.IsCompleted)
-            {
-                await Tools.SafeWait(200).ConfigureAwait(false);
-                if (token.IsCancellationRequested || !AICoreMod.Running)
-                {
-                    _ = bootstrapDone.TrySetCanceled(token);
-                    return;
-                }
-            }
-        });
-
-        // Do other things
-        Tools.SafeAsync(async () =>
+    private static async Task ManageBootstrapAsync(CancellationToken token)
+    {
+        // Check for updates and decide if an update should be applied
+        var (update, version) = await CheckServerUpdateAsync().ConfigureAwait(false);
+        if (token.IsCancellationRequested) return;
+        if (!update)
         {
-            var result = await bootstrapTask.ConfigureAwait(false);
+            LogTool.Message($"You are running version {version}");
+            return;
+        }
+        else
+        {
+            if (version == "_") LogTool.Message("RWAI files haven't been found!");
+            else LogTool.Message($"RWAI has found a new version: {version}");
+        }
 
-            // error checks
-            if (bootstrapTask.IsCanceled || bootstrapTask.IsFaulted)
-            {
-                LogTool.Error("Bootstrap process faulted, will not start server.");
-                return;
-            }
+        LogTool.Message("RWAI has begun bootstrapping!");
 
-            // abnormal exit
-            if (!result)
-            {
-                LogTool.Message("Unexpected safe bootstrap result, will not start server.");
-                return;
-            }
+        string? pythonPath;
+        string? scriptContent;
 
-            isConfigured = CheckConfigured();
+        // Fetch the bootstrap script required to update
+        var result = await FetchBootstrapperAsync().ConfigureAwait(false);
+        if (!result.HasValue || token.IsCancellationRequested)
+        {
+            LogTool.Error("Update failed or was cancelled.");
+            return;
+        }
+        else (pythonPath, scriptContent) = result.Value;
 
-            if (isConfigured is not null and true)
-            {
-                AICoreMod.Server.UpdateRunningState(AICoreMod.Settings.Enabled);
-                await AICoreMod.Client.UpdateRunningStateAsync(AICoreMod.Settings.Enabled).ConfigureAwait(false);
-            }
-            // bt.Dispose();
-        });
+        // Run bootstrapper only if the update was successful or not needed
+        bool bootstrapResult = await PerformBootstrapAsync(pythonPath, scriptContent, token).ConfigureAwait(false);
+        if (!bootstrapResult || token.IsCancellationRequested)
+        {
+            LogTool.Error("Bootstrap process failed or was cancelled.");
+            return;
+        }
+
+        // Further actions after a successful bootstrap
+        if (AICoreMod.Settings!.Enabled && (isConfigured = CheckConfigured()) == true)
+        {
+            ServerManager.UpdateRunningState(AICoreMod.Settings.Enabled);
+            await AICoreMod.Client.UpdateRunningStateAsync(AICoreMod.Settings.Enabled).ConfigureAwait(false);
+        }
+    }
+
+    // compare github api against pinned "./.version"
+    private static async Task<(bool shouldUpdate, string version)> CheckServerUpdateAsync()
+    {
+        string oldVersion = "_";
+
+        try
+        {
+            // check for ".version" file
+            var versionPath = Path.Combine(modPath, ".version");
+            if (!File.Exists(versionPath)) return (true, "_");
+            oldVersion = File.ReadAllText(versionPath);
+
+            // check for internet
+            internetAccess = CheckInternet();
+            if (internetAccess == false) return (false, oldVersion);
+
+            // compare ".version" file with latest
+            var releaseUrl = new Uri(releaseString);
+            var userAgent = "igoforth/RWAILib";
+
+            string apiContent = await Download(ContentType.Content, releaseUrl, userAgent).ConfigureAwait(false);
+
+            var json = JObject.Parse(apiContent);
+            string newVersion = (string)json["tag_name"];
+            return newVersion != oldVersion ? ((bool shouldUpdate, string version))(true, newVersion) : ((bool shouldUpdate, string version))(false, oldVersion);
+        }
+        catch (FileNotFoundException ex)
+        {
+            LogTool.Warning($"File not found: {ex}");
+            return (true, "_");
+        }
+        catch (UriFormatException ex)
+        {
+            LogTool.Error($"Invalid URI format: {ex}");
+            return (false, oldVersion);
+        }
+        catch (UnityWebRequestException ex)
+        {
+            LogTool.Error($"HTTP request error: {ex}");
+            return (false, oldVersion);
+        }
+        catch (JsonException ex)
+        {
+            LogTool.Error($"JSON parsing error: {ex}");
+            return (false, oldVersion);
+        }
+        catch (IOException ex)
+        {
+            LogTool.Error($"IO error: {ex}");
+            return (false, oldVersion);
+        }
+    }
+
+    private static async Task<(string binPath, string scriptContent)?> FetchBootstrapperAsync()
+    {
+        if (pythonPath == null) return null;
+
+        var bootstrapUrl = new Uri(bootstrapString);
+        var pythonUrl = new Uri(pythonString);
+        var binPath = Directory.GetParent(pythonPath).FullName;
+
+        // Create the bin directory if it doesn't exist
+        if (!Directory.Exists(binPath)) _ = Directory.CreateDirectory(binPath);
+
+        try
+        {
+            Task<string> pythonDownload = Download(ContentType.File, pythonUrl, null, pythonPath);
+            Task<string> scriptDownload = Download(ContentType.Content, bootstrapUrl);
+            var result = await Task.WhenAll(pythonDownload, scriptDownload).ConfigureAwait(false);
+            return (pythonPath, result[1]);
+        }
+        catch (UnityWebRequestException ex)
+        {
+            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
+            LogTool.Error("HTTP Error when downloading script or Python binary");
+            LogTool.Error($"{ex.Message}");
+            return null;
+        }
     }
 
     private static async Task<string> Download(
@@ -519,181 +468,134 @@ public static class BootstrapTool // : IDisposable
                     .ConfigureAwait(false);
     }
 
-    private static async void BootstrapAsync(TaskCompletionSource<bool> bootstrapDone, CancellationToken token)
+    private static async Task<bool> PerformBootstrapAsync(string pythonPath, string scriptContent, CancellationToken token)
     {
-        if (bootstrapDone == null) throw new ArgumentException("BootstrapAsync: bootstrapDone task is null!");
-
-        var bootstrapUrl = new Uri(bootstrapString);
-        var pythonUrl = new Uri(pythonString);
         var binPath = Directory.GetParent(pythonPath).FullName;
-        string scriptContent = "";
-
-        LogTool.Message("RWAI has begun bootstrapping!");
-        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
-
-        // Create the bin directory if it doesn't exist
-        if (!Directory.Exists(binPath))
-            _ = Directory.CreateDirectory(binPath);
+        if (!Directory.Exists(binPath)) _ = Directory.CreateDirectory(binPath);
 
         try
         {
-            Task<string> pythonDownload = Download(ContentType.File, pythonUrl, null, pythonPath);
-            Task<string> scriptDownload = Download(ContentType.Content, bootstrapUrl);
-            _ = await Task.WhenAll(pythonDownload, scriptDownload).ConfigureAwait(false);
-            scriptContent = scriptDownload.Result;
-        }
-        catch (UnityWebRequestException ex)
-        {
-            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
-            LogTool.Error("HTTP Error when downloading script or Python binary");
-            LogTool.Error($"{ex.Message}");
-            return;
-        }
-
-        // If OS is not Windows, make python executable
-        if (platform != OSPlatform.Windows)
-        {
-            var chmodPSI = new ProcessStartInfo
+            // If OS is not Windows, make python executable
+            if (platform != OSPlatform.Windows)
             {
-                FileName = "chmod",
-                Arguments = $"+x {pythonPath}",
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var chmodProcess = new Process { StartInfo = chmodPSI };
-            _ = chmodProcess.Start();
-            chmodProcess.WaitForExit();
-
-            if (chmodProcess.ExitCode != 0)
-            {
-                ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
-                LogTool.Error("Failed to set executable permission on Python binary.");
-                return;
-            }
-        }
-
-        var pythonPSI = new ProcessStartInfo
-        {
-            FileName = shellBin,
-            Arguments = "bin/python -",
-            WorkingDirectory = modPath,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            StandardErrorEncoding = Encoding.UTF8,
-            RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        try
-        {
-            bootstrapProcess = new Process { StartInfo = pythonPSI, EnableRaisingEvents = true };
-
-            bootstrapProcess.Exited += (sender, e) =>
-            {
-#if DEBUG
-                var elapsedTime = Math.Round(
-                    (bootstrapProcess.ExitTime - bootstrapProcess.StartTime).TotalMilliseconds
-                );
-                LogTool.Debug($"Exit time    : {bootstrapProcess.ExitTime}");
-                LogTool.Debug($"Exit code    : {bootstrapProcess.ExitCode}");
-                LogTool.Debug($"Elapsed time : {elapsedTime}");
-#endif
-
-                if (bootstrapProcess.ExitCode != 0)
+                using (var chmodProcess = new Process
                 {
-                    ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
-                    bootstrapDone.TrySetResult(false);
+                    StartInfo = {
+                    FileName = "chmod",
+                    Arguments = $"+x {pythonPath}",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
                 }
-                else
-                    bootstrapDone.TrySetResult(true);
-            };
-
-            bootstrapProcess.OutputDataReceived += (sender, args) =>
-            {
-                if (!string.IsNullOrEmpty(args.Data))
-                    // LogTool.Message(args.Data, "UISink");
-#if DEBUG
-                    LogTool.Message(args.Data);
-#endif
-            };
-
-            bootstrapProcess.ErrorDataReceived += (sender, args) =>
-            {
-                if (!string.IsNullOrEmpty(args.Data))
-                    // LogTool.Error(args.Data, "UISink");
-                    LogTool.Error(args.Data);
-            };
-
-            _ = bootstrapProcess.Start();
-
-            // Handling cancellation
-            _ = token.Register(async () =>
-            {
-                if (!bootstrapProcess.HasExited)
-                    ProcessInterruptHelper.SendSigINT(bootstrapProcess); // Interrupt the process if cancellation is requested
-                await Tools.SafeWait(200).ConfigureAwait(false);
-                if (!bootstrapProcess.HasExited)
+                })
                 {
-                    bootstrapProcess.Kill();
-                    bootstrapProcess.Dispose();
-                }
-            });
-
-            // Write the multiline script content to the process
-            using (var sw = bootstrapProcess.StandardInput)
-            {
-                if (sw.BaseStream.CanWrite)
-                {
-                    sw.WriteLine(scriptContent);
+                    chmodProcess.Start();
+                    chmodProcess.WaitForExit();
+                    if (chmodProcess.ExitCode != 0)
+                    {
+                        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
+                        LogTool.Error("Failed to set executable permission on Python binary.");
+                        return false;
+                    }
                 }
             }
 
-            // Read the output stream first and then wait.
-            bootstrapProcess.BeginOutputReadLine();
-            bootstrapProcess.BeginErrorReadLine();
+            using (bootstrapProcess = new Process
+            {
+                EnableRaisingEvents = true,
+                StartInfo = {
+                    FileName = shellBin,
+                    Arguments = "bin/python -",
+                    WorkingDirectory = modPath,
+                    RedirectStandardInput = true,
+#if DEBUG
+                    RedirectStandardOutput = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+#endif
+                    RedirectStandardError = true,
+                    StandardErrorEncoding = Encoding.UTF8,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            })
+            {
+                bootstrapProcess.Start();
 
-            await Task.Run(() => bootstrapProcess.WaitForExit(), token).ConfigureAwait(false);
+#if DEBUG
+                // Read the output stream first and then wait.
+                bootstrapProcess.BeginOutputReadLine();
+#endif
+                bootstrapProcess.BeginErrorReadLine();
 
-            // // Process completion missed, setting task result to false
-            // if (!bootstrapDone.Task.IsCompleted)
-            //     _ = bootstrapDone.TrySetResult(false);
+                // Write the multiline script content to the process
+                using (var sw = bootstrapProcess.StandardInput)
+                {
+                    if (sw.BaseStream.CanWrite)
+                    {
+                        await sw.WriteLineAsync(scriptContent).ConfigureAwait(false);
+                    }
+                }
+
+                bootstrapProcess.Exited += (sender, e) =>
+                {
+                    if (bootstrapProcess == null) return;
+#if DEBUG
+                    var elapsedTime = Math.Round(
+                        (bootstrapProcess.ExitTime - bootstrapProcess.StartTime).TotalMilliseconds
+                    );
+                    LogTool.Debug($"Exit time    : {bootstrapProcess.ExitTime}");
+                    LogTool.Debug($"Exit code    : {bootstrapProcess.ExitCode}");
+                    LogTool.Debug($"Elapsed time : {elapsedTime}");
+#endif
+                    if (bootstrapProcess.ExitCode != 0)
+                    {
+                        LogTool.Warning($"Bootstrap process exited with non-zero code: {bootstrapProcess.ExitCode}");
+                        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
+                    }
+                };
+
+                bootstrapProcess.ErrorDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrEmpty(args.Data))
+                        // LogTool.Error(args.Data, "UISink");
+                        LogTool.Error(args.Data);
+                };
+
+#if DEBUG
+                bootstrapProcess.OutputDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrEmpty(args.Data))
+                        // LogTool.Message(args.Data, "UISink");
+                        LogTool.Message(args.Data);
+                };
+#endif
+
+                ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
+
+                // Handling cancellation
+                using (var registration = token.Register(() =>
+                {
+                    if (!bootstrapProcess.HasExited) ProcessInterruptHelper.SendSigINT(bootstrapProcess);
+                }))
+                {
+                    await Task.Run(bootstrapProcess.WaitForExit, token).ConfigureAwait(false);
+                }
+                return bootstrapProcess.ExitCode == 0;
+            }
         }
         catch (InvalidOperationException ex)
         {
             LogTool.Error($"Invalid operation error starting process: {ex}");
-            _ = bootstrapDone.TrySetException(ex);
-            return;
+            return false;
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
             LogTool.Error($"Win32 error starting process: {ex}");
-            _ = bootstrapDone.TrySetException(ex);
-            return;
+            return false;
         }
         catch (PlatformNotSupportedException ex)
         {
             LogTool.Error($"Platform not supported error starting process: {ex}");
-            _ = bootstrapDone.TrySetException(ex);
-            return;
+            return false;
         }
     }
-
-    // public void Dispose()
-    // {
-    //     Dispose(true);
-    //     GC.SuppressFinalize(this);
-    // }
-
-    // private static void Dispose(bool disposing)
-    // {
-    //     if (disposing)
-    //     {
-    //         onQuit.Cancel();
-    //         onQuit.Dispose();
-    //         bootstrapProcess?.Dispose();
-    //     }
-    // }
 }

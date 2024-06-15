@@ -150,7 +150,7 @@ public class AICoreMod : Mod
                 if (BootstrapTool.isConfigured is not null and true)
                 {
                     Client.UpdateRunningState(Settings.Enabled);
-                    Server.UpdateRunningState(Settings.Enabled);
+                    ServerManager.UpdateRunningState(Settings.Enabled);
                 }
             }
         });

@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>¡Bienvenido a RimWorldAI!
+
+Has descargado el mod, ¡ahora pongamos en marcha la IA! "Continuar" descargará los archivos necesarios de IA en segundo plano. Esto puede tardar un poco ya que los archivos tienen entre 2 y 8 GB - ¡gracias por tu paciencia!
+
+Una vez configurado, RimWorldAI puede funcionar completamente sin conexión. Si deshabilitas las actualizaciones automáticas, no se necesita conexión a internet, manteniendo tus interacciones con la IA tan privadas como los secretos de tu colonia.
+
+¿Prefieres buscar actualizaciones en tu propio horario? Simplemente dirígete a la configuración para verificar manualmente cuando desees.
+
+Habilita las actualizaciones automáticas para mantener tu IA en óptimas condiciones sin esfuerzo, asegurando que siempre tengas las características más recientes y mejores.
+
+¡Feliz narración y que tu colonia prospere!</RWAI_Welcome><RWAI_AutoUpdate>Revise automáticamente las actualizaciones:</RWAI_AutoUpdate><RWAI_Online>Servidor de IA en línea</RWAI_Online><RWAI_Busy>Servidor de IA ocupado</RWAI_Busy><RWAI_Error>Error del Servidor de IA</RWAI_Error><RWAI_Offline>Servidor de IA sin conexión</RWAI_Offline><RWAI_Reset>Esto intentará solucionar problemas eliminando y volviendo a descargar los archivos de IA.</RWAI_Reset></LanguageData>

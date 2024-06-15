@@ -14,37 +14,21 @@ public class ServerManager : IDisposable
     public static CancellationTokenSource onQuit = new();
     public static bool Running => !onQuit.IsCancellationRequested;
     public static ServerStatus currentServerStatusEnum = ServerStatus.Offline;
-    public static string currentServerStatus = "AI Server " + ServerStatus.Offline;
+    public static string currentServerStatus = ("RWAI_" + ServerStatus.Offline.ToString()).Translate();
     private static readonly PlatformID platform = Environment.OSVersion.Platform;
-    private static readonly string shellBin =
-        platform == PlatformID.Win32NT ? "powershell.exe" : "sh";
-#if DEBUG
-    private const string serverArgs = "bin/python AIServer.pyz --loglevel DEBUG";
-#else
-    private const string serverArgs = "bin/python AIServer.pyz --loglevel INFO";
-#endif
-    private static string? modPath;
     private static ServerManager? instance;
-    private Process? serverProcess;
     private static readonly object lockObject = new();
-
-    // private FileSink logSink;
+    private static Process? serverProcess;
 
     public enum ServerStatus
     {
         Online,
-        Updating,
+        Busy,
         Error,
         Offline
     }
 
-    private ServerManager()
-    {
-        modPath = Path.Combine(
-            Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(),
-            "RWAI"
-        );
-    }
+    private ServerManager() { }
 
     // singleton pattern
     public static ServerManager Instance
@@ -56,30 +40,30 @@ public class ServerManager : IDisposable
         }
     }
 
-    public void UpdateRunningState(bool enabled)
+    public static void UpdateRunningState(bool enabled)
     {
-        if (enabled)
-            Start();
-        else
-            Stop();
+        if (enabled) Start();
+        else Stop();
     }
 
-    public void Start()
+    public static void Start()
     {
         lock (lockObject)
         {
             // Avoid starting if already running
             if (Running && currentServerStatusEnum == ServerStatus.Online) return;
 
-            // Reset the CancellationTokenSource when starting
-            onQuit = new CancellationTokenSource();
             // logSink = FileSink.Instance;
 
-            StartProcess(shellBin, serverArgs);
+            // Reset the CancellationTokenSource when starting
+            onQuit.Dispose();
+            onQuit = new CancellationTokenSource();
+
+            StartProcess(onQuit.Token);
         }
     }
 
-    public void Stop()
+    public static void Stop()
     {
         lock (lockObject)
         {
@@ -87,14 +71,7 @@ public class ServerManager : IDisposable
             if (!Running || currentServerStatusEnum == ServerStatus.Offline) return;
 
             onQuit.Cancel();
-            if (serverProcess != null && !serverProcess.HasExited)
-            {
-                serverProcess.WaitForExit();
-                serverProcess.Close();
-            }
-            // logSink.Dispose();
-            onQuit.Dispose();  // Properly dispose of the CancellationTokenSource
-            onQuit = new CancellationTokenSource();  // Ready for next start
+            onQuit.Dispose();
         }
     }
 
@@ -102,17 +79,34 @@ public class ServerManager : IDisposable
     public static void UpdateServerStatus(ServerStatus status)
     {
         currentServerStatusEnum = status;
-        currentServerStatus = "AI Server " + status.ToString();
+        currentServerStatus = ("RWAI_" + status.ToString()).Translate();
         LogTool.Message(currentServerStatus, "ServerSink");
     }
 
-    private void StartProcess(string shellBin, string shellArgs)
+    private static void StartProcess(CancellationToken token)
     {
+        var shellBin =
+            platform == PlatformID.Win32NT ? "powershell.exe" : "sh";
+#if DEBUG
+        var shellArgs = "bin/python AIServer.pyz --loglevel DEBUG";
+#else
+        var shellArgs = "bin/python AIServer.pyz --loglevel INFO";
+#endif
+        var modPath = Path.Combine(
+            Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(),
+            "RWAI"
+        );
+
+        _ = Task.Run(async () => await ManageServerAsync(shellBin, shellArgs, modPath, token).ConfigureAwait(false), token);
+    }
+
+    private static async Task ManageServerAsync(string shellBin, string shellArgs, string modPath, CancellationToken token)
+    {
+        // Run the server process
         try
         {
-            UpdateServerStatus(ServerStatus.Busy);
-
-            serverProcess = new Process
+            // UpdateServerStatus(ServerStatus.Busy);
+            using (serverProcess = new Process
             {
                 EnableRaisingEvents = true,
                 StartInfo =
@@ -120,35 +114,67 @@ public class ServerManager : IDisposable
                     FileName = shellBin,
                     Arguments = shellArgs,
                     WorkingDirectory = modPath,
-                    RedirectStandardInput = true,
+                    RedirectStandardInput = false,
+#if DEBUG
+                    RedirectStandardOutput = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+#endif
                     RedirectStandardError = true,
                     StandardErrorEncoding = Encoding.UTF8,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
-            };
-            serverProcess.Exited += new EventHandler(ProcessExited);
-            serverProcess.ErrorDataReceived += (sender, args) =>
+            })
             {
-                if (!string.IsNullOrEmpty(args.Data))
-                {
-                    // LogTool.Error(args.Data, "ServerSink");
-                    LogTool.Message(args.Data); // currently server stdout goes to stderr... idk why
-                }
-            };
+                serverProcess.Start();
 
 #if DEBUG
-            serverProcess.StartInfo.RedirectStandardOutput = true;
-            serverProcess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-            serverProcess.OutputDataReceived += (sender, args) =>
-            {
-                if (!string.IsNullOrEmpty(args.Data))
-                {
-                    // LogTool.Debug(args.Data, "ServerSink");
-                    LogTool.Debug(args.Data);
-                }
-            };
+                // Read the output stream first and then wait.
+                serverProcess.BeginOutputReadLine();
 #endif
+                serverProcess.BeginErrorReadLine();
+
+                serverProcess.Exited += (sender, e) =>
+                {
+                    if (serverProcess == null) return;
+#if DEBUG
+                    var elapsedTime = Math.Round(
+                        (serverProcess.ExitTime - serverProcess.StartTime).TotalMilliseconds
+                    );
+                    LogTool.Debug($"Exit time    : {serverProcess.ExitTime}");
+                    LogTool.Debug($"Exit code    : {serverProcess.ExitCode}");
+                    LogTool.Debug($"Elapsed time : {elapsedTime}");
+#endif
+                    if (serverProcess.ExitCode != 0) LogTool.Warning($"AI Server exited with non-zero code: {serverProcess.ExitCode}");
+                    else LogTool.Message("AI Server shutdown.");
+                    UpdateServerStatus(ServerStatus.Offline);
+                };
+
+                serverProcess.ErrorDataReceived += (sender, args) =>
+                {
+                    // currently server stdout goes to stderr... idk why
+                    if (!string.IsNullOrEmpty(args.Data)) LogTool.Message(args.Data);
+                };
+
+#if DEBUG
+                serverProcess.OutputDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrEmpty(args.Data)) LogTool.Debug(args.Data);
+                };
+#endif
+
+                UpdateServerStatus(ServerStatus.Online);
+                LogTool.Message("AI Server started! OMG it actually started, whattttttt");
+
+                // Handling cancellation
+                using (var registration = token.Register(() =>
+                {
+                    if (!serverProcess.HasExited) ProcessInterruptHelper.SendSigINT(serverProcess);
+                }))
+                {
+                    await Task.Run(serverProcess.WaitForExit, token).ConfigureAwait(false);
+                }
+            }
         }
         catch (InvalidOperationException ex)
         {
@@ -165,55 +191,6 @@ public class ServerManager : IDisposable
             LogTool.Error($"Platform not supported error starting process: {ex}");
             UpdateServerStatus(ServerStatus.Error);
         }
-
-        // Run the server process
-        Tools.SafeAsync(async () =>
-        {
-            if (serverProcess == null)
-                throw new InvalidOperationException(
-                    "Server is trying to start without being initialized!"
-                );
-
-            serverProcess.Start();
-
-#if DEBUG
-            // Read the output stream first and then wait.
-            serverProcess.BeginOutputReadLine();
-#endif
-            serverProcess.BeginErrorReadLine();
-
-            UpdateServerStatus(ServerStatus.Online);
-            LogTool.Message("AI Server started! OMG it actually started, whattttttt");
-
-            while (Running && AICoreMod.Running)
-                await Tools.SafeWait(200).ConfigureAwait(false);
-
-            ProcessInterruptHelper.SendSigINT(serverProcess);
-            serverProcess.WaitForExit();
-            serverProcess.Close();
-        });
-    }
-
-    // Handle Exited event and display process information.
-    private void ProcessExited(object sender, EventArgs e)
-    {
-        if (serverProcess == null)
-            return;
-
-#if DEBUG
-        LogTool.Debug($"Exit time    : {serverProcess.ExitTime}");
-        LogTool.Debug($"Exit code    : {serverProcess.ExitCode}");
-        LogTool.Debug(
-            $"Elapsed time : {Math.Round((serverProcess.ExitTime - serverProcess.StartTime).TotalMilliseconds)}"
-        );
-#endif
-        if (serverProcess.ExitCode != 0)
-        {
-            LogTool.Error("AI Server exited with non-zero code!");
-        }
-
-        LogTool.Message("AI Server shutdown.");
-        UpdateServerStatus(ServerStatus.Offline);
     }
 
     public void Dispose()
@@ -224,11 +201,6 @@ public class ServerManager : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            Stop();
-            onQuit?.Dispose();
-            serverProcess?.Dispose();
-        }
+        if (disposing) Stop();
     }
 }

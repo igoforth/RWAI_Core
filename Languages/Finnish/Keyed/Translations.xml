@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>Tervetuloa RimWorldAI:n pariin!
+
+Olet ladannut modin, joten otetaan nyt AI käyttöön! "Jatka" lataa tarvittavat AI-tiedostot taustalla. Tämä saattaa kestää hetken, sillä tiedostojen koko vaihtelee 2-8 GB:n välillä - kiitos kärsivällisyydestäsi!
+
+Kun asetukset on tehty, RimWorldAI voi toimia täysin offline-tilassa. Jos poistat automaattiset päivitykset käytöstä, et tarvitse internet-yhteyttä, joten AI-yhteytesi pysyvät yhtä yksityisinä kuin siirtokuntasi salaisuudet!
+
+Haluatko tarkistaa päivitykset oman aikataulusi mukaan? Siirry vain asetuksiin tarkistaaksesi manuaalisesti milloin tahansa.
+
+Ota käyttöön automaattiset päivitykset, jotta AI pysyy vaivattomasti huippukunnossa ja varmistat, että sinulla on aina parhaat ja uusimmat ominaisuudet.
+
+Mukavaa tarinankerrontaa ja menestystä siirtokunnallesi!</RWAI_Welcome><RWAI_AutoUpdate>Tarkista päivitykset automaattisesti:</RWAI_AutoUpdate><RWAI_Online>AI-palvelin verkossa</RWAI_Online><RWAI_Busy>AI-palvelin on varattu.</RWAI_Busy><RWAI_Error>AI-palvelinvirhe</RWAI_Error><RWAI_Offline>AI-palvelin offline-tilassa</RWAI_Offline><RWAI_Reset>Tämä yrittää korjata ongelmat poistamalla ja lataamalla AI-tiedostot uudelleen.</RWAI_Reset></LanguageData>

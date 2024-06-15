@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>Vitajte v RimWorldAI!
+
+Stiahli ste si mod, teraz poďme spustiť AI! "Pokračovať" stiahne potrebné súbory AI na pozadí. Môže to chvíľu trvať, pretože súbory majú medzi 2 až 8 GB - ďakujeme za vašu trpezlivosť!
+
+Po nastavení môže RimWorldAI bežať úplne offline. Ak zakážete automatické aktualizácie, nie je potrebné internetové pripojenie, čím udržíte svoje interakcie s AI tak súkromné ako tajomstvá vašej kolónie!
+
+Radi by ste kontrolovali aktualizácie podľa vlastného harmonogramu? Jednoducho prejdite do nastavení a manuálne skontrolujte, kedykoľvek si prajete.
+
+Povoľte automatické aktualizácie, aby ste bez námahy udržali svoju AI v top stave, čím zaistíte, že budete mať vždy tie najlepšie a najnovšie funkcie.
+
+Šťastné rozprávanie príbehov a nech vaša kolónia prekvita!</RWAI_Welcome><RWAI_AutoUpdate>Automaticky kontrolovať aktualizácie:</RWAI_AutoUpdate><RWAI_Online>AI server online</RWAI_Online><RWAI_Busy>Server AI je zaneprázdnený</RWAI_Busy><RWAI_Error>Chyba servera AI</RWAI_Error><RWAI_Offline>Server AI je offline</RWAI_Offline><RWAI_Reset>Týmto sa pokúsime odstrániť problémy vymazaním a opätovným stiahnutím súborov AI.</RWAI_Reset></LanguageData>

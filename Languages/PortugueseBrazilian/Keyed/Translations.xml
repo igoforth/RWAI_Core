@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData><RWAI_Welcome>Bem-vindo ao RimWorldAI!
+
+Você baixou o mod, agora vamos colocar a IA em funcionamento! "Continuar" fará o download dos arquivos necessários da IA em segundo plano. Isso pode demorar um pouco, pois os arquivos têm entre 2 a 8 GB - obrigado pela sua paciência!
+
+Uma vez configurado, o RimWorldAI pode funcionar totalmente offline. Se você desativar as atualizações automáticas, nenhuma conexão com a internet será necessária, mantendo suas interações com a IA tão privadas quanto os segredos da sua colônia!
+
+Prefere verificar atualizações no seu próprio ritmo? Basta ir para as configurações para verificar manualmente sempre que desejar.
+
+Ative as atualizações automáticas para manter sua IA em perfeito estado, garantindo que você sempre tenha os melhores e mais recentes recursos.
+
+Feliz narração de histórias e que sua colônia prospere!</RWAI_Welcome><RWAI_AutoUpdate>Verificar atualizações automaticamente:</RWAI_AutoUpdate><RWAI_Online>Servidor IA Online</RWAI_Online><RWAI_Busy>Servidor de IA ocupado</RWAI_Busy><RWAI_Error>Erro do Servidor AI</RWAI_Error><RWAI_Offline>Servidor AI Offline</RWAI_Offline><RWAI_Reset>Isso tentará corrigir os problemas deletando e baixando novamente os arquivos de IA.</RWAI_Reset></LanguageData>

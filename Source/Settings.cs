@@ -11,24 +11,24 @@ public partial class AICoreSettings : ModSettings
         get => enabled;
         set
         {
+            OnEnableSet(value);
+
             if (enabled != value)
             {
                 enabled = value;
 
-                OnEnableSet();
-
                 if (BootstrapTool.isConfigured is not null and true)
                 {
                     AICoreMod.Client.UpdateRunningState(value);
-                    AICoreMod.Server.UpdateRunningState(value);
+                    ServerManager.UpdateRunningState(value);
                 }
             }
         }
     }
 
-    private void OnEnableSet()
+    private void OnEnableSet(bool value)
     {
-        if (MainMenuDrawer_MainMenuOnGUI_Patch.ShowWelcome) BootstrapTool.UpdateRunningState(Enabled);
+        if (MainMenuDrawer_MainMenuOnGUI_Patch.ShowWelcome) BootstrapTool.UpdateRunningState(value);
         else BootstrapTool.UpdateRunningState(AutoUpdateCheck);
     }
 
@@ -53,7 +53,7 @@ public partial class AICoreSettings : ModSettings
         Scribe_Values.Look(ref autoUpdateCheck, "autoUpdateCheck", false);
     }
 
-    public bool IsConfigured => Enabled;
+    public bool IsConfigured => Enabled && BootstrapTool.isConfigured is not null and true;
     public Vector2 scrollPosition = Vector2.zero;
 
     public void DoWindowContents(Rect inRect)
@@ -67,6 +67,9 @@ public partial class AICoreSettings : ModSettings
 
         // Draw mods list section
         DrawModsList(modsListRect);
+
+        // Show server status in bottom right
+        // MainMenuDrawer_MainMenuOnGUI_Patch.ShowStatus();
     }
 
     private void DrawSettings(Rect rect)
@@ -85,31 +88,56 @@ public partial class AICoreSettings : ModSettings
         // CHECKBOXES
 
         bool autoUpdate = AutoUpdateCheck;
-        listing.CheckboxLabeled("Check for updates automatically:", ref autoUpdate);
+        listing.CheckboxLabeled("RWAI_AutoUpdate".Translate(), ref autoUpdate);
         AutoUpdateCheck = autoUpdate;
 
         // BUTTONS
 
-        listing.Gap(16f);
+        listing.Gap(48f);
 
         Listing_Standard serverListing = new();
-        var innerRect = new Rect(0f, 0f, listing.ColumnWidth, listing.CurHeight);
+        var innerRect = new Rect(0f, 32f, listing.ColumnWidth, listing.CurHeight);
+        var widthLeft = innerRect.width;
         serverListing.Begin(innerRect);
-        _ = serverListing.Label("Server Operations:");
+
+        var colWidth = widthLeft / 2;
+        widthLeft -= colWidth;
+        serverListing.ColumnWidth = colWidth;
+
+        _ = serverListing.Label(UpdateServerStatus.serverStatus);
 
         serverListing.NewColumn();
+        colWidth = (widthLeft / 4) - 18f;
+        serverListing.ColumnWidth = colWidth;
+        if (serverListing.ButtonText("Update"))
+        {
+            var oldAutoUpdate = autoUpdateCheck;
+            var oldEnabled = enabled;
+            autoUpdateCheck = false;
+            Enabled = false;
+            BootstrapTool.UpdateRunningState(true);
+            Enabled = oldEnabled;
+            autoUpdateCheck = oldAutoUpdate;
+        }
+
+        serverListing.NewColumn();
+        serverListing.ColumnWidth = colWidth;
         if (serverListing.ButtonText("Start"))
         {
             Enabled = true;
+            Write();
         }
 
         serverListing.NewColumn();
+        serverListing.ColumnWidth = colWidth;
         if (serverListing.ButtonText("Stop"))
         {
             Enabled = false;
+            Write();
         }
 
         serverListing.NewColumn();
+        serverListing.ColumnWidth = colWidth;
         if (serverListing.ButtonText("Restart"))
         {
             Enabled = false;
@@ -118,9 +146,9 @@ public partial class AICoreSettings : ModSettings
 
         serverListing.End();
 
-        listing.Gap(16f);
+        listing.Gap(48f);
 
-        _ = listing.Label("This will attempt to fix issues by deleting and redownloading the AI files.");
+        _ = listing.Label("RWAI_Reset".Translate());
         GUI.color = Color.red;
         if (listing.ButtonText("RESET"))
         {
@@ -152,7 +180,7 @@ public partial class AICoreSettings : ModSettings
         LogTool.Debug($"Found {expansionMods.Count()} expansion mods.");
 #endif
 
-        Widgets.DrawBoxSolid(rect, new Color(0.1f, 0.1f, 0.1f, 1.0f));
+        Widgets.DrawBoxSolid(rect, new Color(0.05f, 0.05f, 0.05f, 0.75f));
         Rect scrollContentRect = new(0f, 0f, rect.width - 16, expansionMods.Count() * (cardSize + 10));
         Widgets.BeginScrollView(rect, ref scrollPosition, scrollContentRect, true);
 
