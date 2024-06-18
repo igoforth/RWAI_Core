@@ -212,7 +212,7 @@ public static class BootstrapTool // : IDisposable
     {
         // determine correct lib
         var libBaseDir = Path.GetFullPath(
-            Path.Combine(Assembly.GetCallingAssembly().Location, @"..\..\Libraries\")
+            Path.Combine(Assembly.GetCallingAssembly().Location, @"..\..\..\Libraries\")
         );
         var libraryMapping = new Dictionary<
             (OSPlatform, Architecture),
