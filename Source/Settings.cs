@@ -19,7 +19,7 @@ public partial class AICoreSettings : ModSettings
 
                 if (BootstrapTool.isConfigured is not null and true)
                 {
-                    AICoreMod.Client.UpdateRunningState(value);
+                    JobClient.UpdateRunningState(value);
                     ServerManager.UpdateRunningState(value);
                 }
             }

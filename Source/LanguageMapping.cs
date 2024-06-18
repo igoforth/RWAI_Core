@@ -75,23 +75,62 @@ public static class LanguageMapping
 
     public static SupportedLanguage GetLanguage()
     {
-        return
-            LanguageDatabase.activeLanguage?.folderName is string folderLang
-            && LanguageMap.TryGetValue(
-                folderLang,
-                out SupportedLanguage mappedLang1
-            )
-            ? mappedLang1
-            : SteamManager.Initialized
-            && SteamApps.GetCurrentGameLanguage().CapitalizeFirst() is string steamLang
-            && LanguageMap.TryGetValue(steamLang, out SupportedLanguage mappedLang2)
-                ? mappedLang2
-                : Application.systemLanguage.ToStringSafe() is string appLang
-                && LanguageMap.TryGetValue(
-                    appLang,
-                    out SupportedLanguage mappedLang3
-                )
-                    ? mappedLang3
-                    : SupportedLanguage.English;
+#if DEBUG
+        LogTool.Debug("Attempting to get language using full folderName");
+        string fullFolderName = LanguageDatabase.activeLanguage.folderName;
+        if (LanguageMap.TryGetValue(fullFolderName.Trim(), out SupportedLanguage mappedLangFull))
+        {
+            LogTool.Debug($"Found language in LanguageMap using full folderName: {mappedLangFull}");
+            return mappedLangFull;
+        }
+
+        LogTool.Debug("Attempting to get language using trimmed folderName");
+        string trimmedFolderName = fullFolderName.Split(' ')[0];
+        if (LanguageMap.TryGetValue(trimmedFolderName.Trim(), out SupportedLanguage mappedLangTrimmed))
+        {
+            LogTool.Debug($"Found language in LanguageMap using trimmed folderName: {mappedLangTrimmed}");
+            return mappedLangTrimmed;
+        }
+
+        // If the above fails, check Steam's current game language if Steam is initialized
+        LogTool.Debug("Checking Steam's current game language");
+        if (SteamManager.Initialized)
+        {
+            var steamLang = SteamApps.GetCurrentGameLanguage().CapitalizeFirst();
+            LogTool.Debug($"Steam's current game language after capitalization: {steamLang}");
+            if (steamLang is not null && LanguageMap.TryGetValue(steamLang.Trim(), out SupportedLanguage mappedLang2))
+            {
+                LogTool.Debug($"Found language in LanguageMap for steamLang: {mappedLang2}");
+                return mappedLang2;
+            }
+        }
+
+        // If both the above checks fail, use the system's language
+        LogTool.Debug("Using system's language setting");
+        var appLang = Application.systemLanguage.ToStringSafe();
+        LogTool.Debug($"System language after ToStringSafe: {appLang}");
+        if (appLang is not null && LanguageMap.TryGetValue(appLang.Trim(), out SupportedLanguage mappedLang3))
+        {
+            LogTool.Debug($"Found language in LanguageMap for appLang: {mappedLang3}");
+            return mappedLang3;
+        }
+
+        // Default to English if all else fails
+        LogTool.Debug("Defaulting to English");
+        return SupportedLanguage.English;
+#else
+        string folderName = LanguageDatabase.activeLanguage.folderName;
+        string steamLang = SteamManager.Initialized ? SteamApps.GetCurrentGameLanguage().CapitalizeFirst() : "";
+        string appLang = Application.systemLanguage.ToStringSafe();
+
+        return (folderName, steamLang, appLang) switch
+        {
+            var full when LanguageMap.TryGetValue(full.folderName.Trim(), out var fullMapped) => fullMapped,
+            var trimmed when trimmed.folderName.Contains(" ") && LanguageMap.TryGetValue(trimmed.folderName.Split(' ')[0].Trim(), out var trimmedMapped) => trimmedMapped,
+            var steam when LanguageMap.TryGetValue(steam.steamLang.Trim(), out var steamMapped) => steamMapped,
+            var app when LanguageMap.TryGetValue(app.appLang.Trim(), out var appMapped) => appMapped,
+            _ => SupportedLanguage.English
+        };
+#endif
     }
 }

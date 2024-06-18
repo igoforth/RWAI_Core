@@ -9,7 +9,7 @@ public class JobClient : IDisposable
 {
     private Lazy<JobManager.JobManagerClient>? _lazyClient;
     private Channel? _channel;
-    private string _address = "127.0.0.1:50051";
+    private static string _address = "127.0.0.1:50051";
     private static int jobCounter;
     private static readonly ConcurrentBag<JobTask> _taskList = [];
     private static readonly Lazy<JobClient> _instance = new(() => new JobClient());
@@ -20,17 +20,17 @@ public class JobClient : IDisposable
 
     public static JobClient Instance => _instance.Value;
 
-    public void Start(string ip, int port)
+    public static void Start(string ip, int port)
     {
         UpdateRunningState(true, $"{ip}:{port}");
     }
 
-    public void UpdateRunningState(bool enabled, string? newAddress = null)
+    public static void UpdateRunningState(bool enabled, string? newAddress = null)
     {
         _address = newAddress ?? _address;
         Tools.SafeAsync(async () =>
         {
-            await UpdateRunningStateAsync(enabled).ConfigureAwait(false);
+            await Instance.UpdateRunningStateAsync(enabled).ConfigureAwait(false);
         });
     }
 

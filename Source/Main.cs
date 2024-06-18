@@ -110,7 +110,7 @@ public class AICoreMod : Mod
 {
     public static Mod? self;
     public static AICoreSettings? Settings;
-    public static readonly ReadOnlyCollection<string> expansionList = new(["AI Core", "AI Items"]);
+    public static readonly ReadOnlyCollection<string> expansionList = new(["RimWorldAI Core", "RimWorldAI Items"]);
     public static CancellationTokenSource onQuit = new();
     public static ServerManager Server => _lazyServerManager.Value;
     public static JobClient Client => _lazyClient.Value;
@@ -149,7 +149,7 @@ public class AICoreMod : Mod
                 BootstrapTool.UpdateRunningState(Settings.AutoUpdateCheck);
                 if (BootstrapTool.isConfigured is not null and true)
                 {
-                    Client.UpdateRunningState(Settings.Enabled);
+                    JobClient.UpdateRunningState(Settings.Enabled);
                     ServerManager.UpdateRunningState(Settings.Enabled);
                 }
             }
@@ -158,6 +158,9 @@ public class AICoreMod : Mod
         Application.wantsToQuit += () =>
         {
             onQuit.Cancel();
+            BootstrapTool.UpdateRunningState(false);
+            JobClient.UpdateRunningState(false);
+            ServerManager.UpdateRunningState(false);
             return true;
         };
     }

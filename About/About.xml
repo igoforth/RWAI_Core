@@ -1,5 +1,5 @@
 <ModMetaData>
-  <name>AI Core</name>
+  <name>RimWorldAI Core</name>
   <author>Trojan</author>
   <packageId>trojan.aicore</packageId>
   <modVersion>0.0.1.0</modVersion>
@@ -17,7 +17,16 @@
       <downloadUrl>https://github.com/pardeike/HarmonyRimWorld/releases/latest</downloadUrl>
     </li>
   </modDependencies>
-  <description><![CDATA[<b><color=orange>AI Core</color></b>
+  <description><![CDATA[<b><color=orange>RimWorldAI Core</color></b>
 
-Core Framework for AI Interaction in Rimworld.]]></description>
+Core Framework for AI Interaction in RimWorld.
+
+RimWorld中AI交互的核心框架。
+
+Основная структура для взаимодействия ИИ в RimWorld.
+
+Trojan
+Discord: igoforth
+Steam: TrojanRL
+GitHub: igoforth]]></description>
 </ModMetaData>
