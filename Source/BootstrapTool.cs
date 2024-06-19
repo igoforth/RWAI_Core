@@ -13,9 +13,9 @@ namespace AICore;
 
 // once configured, layout should look like this:
 // root:
-//   Darwin  - ~/Library/Application Support/RimWorld/Config/RWAI/
-//   Windows - %USERPROFILE%\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios\Config\RWAI\
-//   Linux   - ~/.config/unity3d/Ludeon Studios/RimWorld by Ludeon Studios/Config/RWAI/
+//   Darwin  - ~/Library/Application Support/RimWorld/RWAI/
+//   Windows - %USERPROFILE%\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios\RWAI\
+//   Linux   - ~/.config/unity3d/Ludeon Studios/RimWorld by Ludeon Studios/RWAI/
 // files:
 // ./bin/llamafile (win llamafile.com)
 // ./bin/python (win python.com)
@@ -470,9 +470,6 @@ public static class BootstrapTool // : IDisposable
 
     private static async Task<bool> PerformBootstrapAsync(string pythonPath, string scriptContent, CancellationToken token)
     {
-        var binPath = Directory.GetParent(pythonPath).FullName;
-        if (!Directory.Exists(binPath)) _ = Directory.CreateDirectory(binPath);
-
         try
         {
             // If OS is not Windows, make python executable
@@ -482,7 +479,7 @@ public static class BootstrapTool // : IDisposable
                 {
                     StartInfo = {
                     FileName = "chmod",
-                    Arguments = $"+x {pythonPath}",
+                    Arguments = $"+x \"{pythonPath}\"",
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
