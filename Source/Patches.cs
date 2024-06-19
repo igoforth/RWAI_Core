@@ -29,6 +29,7 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
     private static bool showWelcome;
     private static bool userOverride; // one-time decision per session if !isConfigured
     private static Texture2D Banner;
+    private static bool attemptedDownscale;
     static MainMenuDrawer_MainMenuOnGUI_Patch()
     {
         LoadBanner(out Banner);
@@ -76,7 +77,11 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
 
         // Initialize and draw the banner if not already done
         int rectWidth = Mathf.FloorToInt(rect.width); // Cast rect.width to int for comparison
-        _ = DownscaleBanner(rectWidth);
+        if (!attemptedDownscale)
+        {
+            _ = DownscaleBanner(rectWidth);
+            attemptedDownscale = true;
+        }
         float imageHeight = Banner.height * (rect.width / Banner.width);
         var imageRect = new Rect(rect.x, rect.y, rect.width, imageHeight);
         var uvRect = new Rect(0f, 0f, 1f, 1f);
