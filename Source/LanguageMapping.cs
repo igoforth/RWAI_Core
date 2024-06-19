@@ -73,6 +73,13 @@ public static class LanguageMapping
             { "Ukrainian", SupportedLanguage.Ukrainian }
         };
 
+    public static string FindKeyByValue(SupportedLanguage value)
+    {
+        foreach (var pair in LanguageMap)
+            if (pair.Value == value) return pair.Key;
+        return "English"; // Default to English if no key found
+    }
+
     public static SupportedLanguage GetLanguage()
     {
 #if DEBUG

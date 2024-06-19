@@ -312,6 +312,9 @@ public static class BootstrapTool // : IDisposable
         }
         else (pythonPath, scriptContent) = result.Value;
 
+        // Initialize placeholders in script
+        scriptContent = InitializePlaceholders(scriptContent);
+
         // Run bootstrapper only if the update was successful or not needed
         bool bootstrapResult = await PerformBootstrapAsync(pythonPath, scriptContent, token).ConfigureAwait(false);
         if (!bootstrapResult || token.IsCancellationRequested)
@@ -406,6 +409,17 @@ public static class BootstrapTool // : IDisposable
             LogTool.Error($"{ex.Message}");
             return null;
         }
+    }
+
+    private static string InitializePlaceholders(string script)
+    {
+        string placeholder = "PLACEHOLDER_STRING_LANGUAGE";
+
+        string languageValue = LanguageMapping.FindKeyByValue(LanguageMapping.GetLanguage());
+
+        script = script.Replace(placeholder, languageValue);
+
+        return script;
     }
 
     private static async Task<string> Download(
