@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -218,23 +219,27 @@ public static class BootstrapTool // : IDisposable
         {
             {
                 (OSPlatform.Windows, Architecture.X64),
-                ("grpc_csharp_ext.x64.dll", "grpc_csharp_ext.dll")
+                ("grpc_csharp_ext.x64.dll.gz", "grpc_csharp_ext.dll")
             },
             {
                 (OSPlatform.Windows, Architecture.X86),
-                ("grpc_csharp_ext.x86.dll", "grpc_csharp_ext.dll")
+                ("grpc_csharp_ext.x86.dll.gz", "grpc_csharp_ext.dll")
             },
             {
                 (OSPlatform.Linux, Architecture.X64),
-                ("libgrpc_csharp_ext.x64.so", "libgrpc_csharp_ext.so")
+                ("libgrpc_csharp_ext.x64.so.gz", "libgrpc_csharp_ext.so")
+            },
+            {
+                (OSPlatform.Linux, Architecture.Arm64),
+                ("libgrpc_csharp_ext.arm64.so.gz", "libgrpc_csharp_ext.so")
             },
             {
                 (OSPlatform.OSX, Architecture.Arm64),
-                ("libgrpc_csharp_ext.arm64.dylib", "libgrpc_csharp_ext.dylib")
+                ("libgrpc_csharp_ext.arm64.dylib.gz", "libgrpc_csharp_ext.dylib")
             },
             {
                 (OSPlatform.OSX, Architecture.X64),
-                ("libgrpc_csharp_ext.x64.dylib", "libgrpc_csharp_ext.dylib")
+                ("libgrpc_csharp_ext.x64.dylib.gz", "libgrpc_csharp_ext.dylib")
             }
         };
 
@@ -244,20 +249,32 @@ public static class BootstrapTool // : IDisposable
             string libraryName = value.libraryName;
             string dstName = value.dstName;
 
-            // TODO: Fix, or something. gRPC doesn't listen
-            Environment.SetEnvironmentVariable(
-                "GRPC_CSHARP_EXT_OVERRIDE_LOCATION",
-                Path.Combine(libBaseDir, libraryName)
-            );
+            var libPath = Path.Combine(libBaseDir, libraryName);
+            var dllLoadDir = Path.Combine(Application.dataPath, "Mono");
+            var dstPath = Path.Combine(dllLoadDir, dstName);
+
+            if (!Directory.Exists(dllLoadDir))
+                _ = Directory.CreateDirectory(dllLoadDir);
 
             // backup: copy lib into search path
             // `Fallback handler could not load library %USERPROFILE%/scoop/apps/steam/current/steamapps/common/RimWorld/RimWorldWin64_Data/Mono/grpc_csharp_ext.dll`
-            var dllLoadDir = Path.Combine(Application.dataPath, "Mono");
-            var dstPath = Path.Combine(dllLoadDir, dstName);
-            if (!Directory.Exists(dllLoadDir))
-                _ = Directory.CreateDirectory(dllLoadDir);
+            // Check if the destination file already exists
             if (!File.Exists(dstPath))
-                File.Copy(Path.Combine(libBaseDir, libraryName), dstPath);
+            {
+                using (FileStream gzStream = new(libPath, FileMode.Open, FileAccess.Read))
+                {
+                    using (GZipStream decompressionStream = new(gzStream, CompressionMode.Decompress))
+                    {
+                        using (FileStream outputFileStream = new(dstPath, FileMode.Create, FileAccess.Write))
+                        {
+                            decompressionStream.CopyTo(outputFileStream);
+                        }
+                    }
+                }
+            }
+
+            // TODO: Fix, or something. gRPC doesn't listen
+            Environment.SetEnvironmentVariable("GRPC_CSHARP_EXT_OVERRIDE_LOCATION", dstPath);
         }
         else throw new NotSupportedException("Unsupported OS and Architecture combination.");
     }
