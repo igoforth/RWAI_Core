@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net.NetworkInformation;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using Newtonsoft.Json;
@@ -211,9 +210,7 @@ public static class BootstrapTool // : IDisposable
     private static void SetGrpcOverrideLocation(OSPlatform platform, Architecture arch)
     {
         // determine correct lib
-        var libBaseDir = Path.GetFullPath(
-            Path.Combine(Assembly.GetCallingAssembly().Location, @"../../../Libraries/")
-        );
+        var libBaseDir = Path.GetFullPath(Path.Combine(AICoreMod.self?.Content.RootDir, "Libraries"));
         var libraryMapping = new Dictionary<
             (OSPlatform, Architecture),
             (string libraryName, string dstName)

@@ -130,9 +130,8 @@ public class AICoreMod : Mod
         // Get HW info and set intercepting env vars
         // this must happen before Settings is initialized
         // else consider different check in MainMenu patch
-        BootstrapTool.Init();
-
         self = this;
+        BootstrapTool.Init();
         Settings = GetSettings<AICoreSettings>();
 
         // Force a reload of the runtime assembly binding settings
