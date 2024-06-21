@@ -127,26 +127,41 @@ public class AICoreMod : Mod
         LogTool.Debug("AICoreMod: Constructor called");
 #endif
 
-        // Get HW info and set intercepting env vars
+        self = this;
+
+        // Get HW info and ensure native gRPC libraries are in place
         // this must happen before Settings is initialized
         // else consider different check in MainMenu patch
-        self = this;
         BootstrapTool.Init();
-        Settings = GetSettings<AICoreSettings>();
 
-        // Force a reload of the runtime assembly binding settings
-        // idk if it works but its something to experiment with
-        // ConfigurationManager.RefreshSection("runtime");
+        Settings = GetSettings<AICoreSettings>();
 
         Harmony harmony = new("net.trojan.rimworld.mod.AICore");
         harmony.PatchAll();
 
         LongEventHandler.ExecuteWhenFinished(() =>
         {
+            // we have two major settings that determine state
+            // BootstrapTool.isConfigured is true when all files are present in "RWAI", else false
+            // Settings.Enabled is true when Welcome.Ok or Settings.Start, else false by default
+            // Settings.IsConfigured is a logical AND between these two, and when active
+            // means that we are good to go
+
+            // if settings are configured, process settings
+            // this always means BootstrapTool.isConfigured is not null and true
+            // therefore, the user has already seen the welcome message
             if (Settings.IsConfigured)
             {
-                BootstrapTool.UpdateRunningState(Settings.AutoUpdateCheck);
-                if (BootstrapTool.isConfigured is not null and true)
+                // if AutoUpdateCheck is enabled, check for updates
+                // the update process will always start the server and client at the end
+                if (Settings.AutoUpdateCheck)
+                {
+                    BootstrapTool.UpdateRunningState(Settings.AutoUpdateCheck);
+                }
+                // if BootstrapTool update process is not activated, it is safe to start immediately
+                // this needs to stay in a conditional because if BootstrapTool were checking for updates,
+                // it starts an asynchronous process, so we would be accidentally interrupting it
+                else
                 {
                     JobClient.UpdateRunningState(Settings.Enabled);
                     ServerManager.UpdateRunningState(Settings.Enabled);

@@ -64,6 +64,7 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
         if (userOverride) return;
         if (AICoreMod.Settings == null) return;
         if (AICoreMod.self == null) return;
+        // only show the welcome message if required files are missing or corrupted
         showWelcome = BootstrapTool.isConfigured == false;
         if (!showWelcome) return;
 
@@ -105,11 +106,27 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
         var buttonRectContinue = new Rect(rect.x + rect.width - (2 * buttonWidth) - spacing - 20, rect.yMax - 40, buttonWidth, 30);
         var buttonRectCancel = new Rect(rect.x + rect.width - buttonWidth - 20, rect.yMax - 40, buttonWidth, 30);
 
+        // BootstrapTool's state is only modified when the Enabled setter is activated
+
+        // BootstrapTool will only activate in two situations:
+        // Enabled is true and showWelcome is true
+        // AutoUpdateCheck is true and showWelcome is false
+
+        // This means that BootstrapTool will still install
+        // if Continue is pressed
+        // even if AutoUpdateCheck is false
+        // But won't if Cancel is pressed
+        // and won't on subsequent restarts
+        // even if AutoUpdateCheck is true
+        // until Enabled is set to true with Continue sometime in the future
+
         if (Widgets.ButtonText(buttonRectContinue, "Continue"))
         {
-            AICoreMod.Settings.AutoUpdateCheck = autoUpdate; // Apply changes
+            // when Continue is pressed, Enabled is set to true
+
+            AICoreMod.Settings.AutoUpdateCheck = autoUpdate;
             AICoreMod.Settings.Enabled = true;
-            AICoreMod.Settings.Write(); // Save settings if needed
+            AICoreMod.Settings.Write();
 
             // Dismiss dialog
             userOverride = true;
@@ -117,9 +134,9 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
 
         if (Widgets.ButtonText(buttonRectCancel, "Cancel"))
         {
-            AICoreMod.Settings.AutoUpdateCheck = autoUpdate; // Apply changes
+            AICoreMod.Settings.AutoUpdateCheck = false;
             AICoreMod.Settings.Enabled = false;
-            AICoreMod.Settings.Write(); // Save settings if needed
+            AICoreMod.Settings.Write();
 
             // Dismiss dialog
             userOverride = true;

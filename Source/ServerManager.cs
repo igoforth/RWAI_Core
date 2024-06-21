@@ -42,7 +42,8 @@ public class ServerManager : IDisposable
 
     public static void UpdateRunningState(bool enabled)
     {
-        if (enabled) Start();
+        // if BootstrapTool is not running, then start
+        if (enabled && currentServerStatusEnum != ServerStatus.Busy) Start();
         else Stop();
     }
 

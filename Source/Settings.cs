@@ -17,6 +17,11 @@ public partial class AICoreSettings : ModSettings
             {
                 enabled = value;
 
+                // Only modify state (as a function of the buttons in Settings) if
+                // isConfigured is true, meaning Welcome and Startup have had their opportunities
+                // to greet the user, or set the default state
+                // this will not trigger as a result of setting Enabled in Welcome
+                // as isConfigured should be false
                 if (BootstrapTool.isConfigured is not null and true)
                 {
                     JobClient.UpdateRunningState(value);
@@ -111,13 +116,8 @@ public partial class AICoreSettings : ModSettings
         serverListing.ColumnWidth = colWidth;
         if (serverListing.ButtonText("Update"))
         {
-            var oldAutoUpdate = autoUpdateCheck;
-            var oldEnabled = enabled;
-            autoUpdateCheck = false;
-            Enabled = false;
+            // BootstrapTool will automatically shut down client and server
             BootstrapTool.UpdateRunningState(true);
-            Enabled = oldEnabled;
-            autoUpdateCheck = oldAutoUpdate;
         }
 
         serverListing.NewColumn();
@@ -152,9 +152,8 @@ public partial class AICoreSettings : ModSettings
         GUI.color = Color.red;
         if (listing.ButtonText("RESET"))
         {
-            Enabled = false;
+            // BootstrapTool will automatically shut down client and server
             BootstrapTool.Reset();
-            Enabled = true;
         }
         GUI.color = Color.white;
 

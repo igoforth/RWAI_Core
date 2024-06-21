@@ -107,9 +107,13 @@ public static class BootstrapTool // : IDisposable
             // Stop only if the bootstrap is ongoing
             if (Running) Stop();
 
+            // Stop client and server
+            JobClient.UpdateRunningState(false);
+            ServerManager.UpdateRunningState(false);
+
+            // DELETE RUNTIME FOLDER
             try
             {
-                // DELETE RUNTIME FOLDER
                 if (Directory.Exists(modPath)) Directory.Delete(modPath, true);  // Ensure recursive deletion
             }
             catch (IOException ex)
@@ -281,8 +285,11 @@ public static class BootstrapTool // : IDisposable
 
     private static void Run(CancellationToken token)
     {
+        // This should never be hit, because Settings is always instantiated in Main with Init()
         if (AICoreMod.Settings == null) return;
-        if (isConfigured == null) Init();
+
+        // I'm commenting this out because Init() is always called in Main
+        // if (isConfigured == null) Init();
 
         try
         {
@@ -329,15 +336,25 @@ public static class BootstrapTool // : IDisposable
         // Initialize placeholders in script
         scriptContent = InitializePlaceholders(scriptContent);
 
+        // Turn off client and server so they don't interrupt update
+        await AICoreMod.Client.UpdateRunningStateAsync(false).ConfigureAwait(false);
+        ServerManager.UpdateRunningState(false);
+
         // Run bootstrapper only if the update was successful or not needed
         bool bootstrapResult = await PerformBootstrapAsync(pythonPath, scriptContent, token).ConfigureAwait(false);
+        // If the bootstrap or update failed, do not attempt to start
         if (!bootstrapResult || token.IsCancellationRequested)
         {
             LogTool.Error("Bootstrap process failed or was cancelled.");
             return;
         }
 
-        // Further actions after a successful bootstrap
+        // If Enabled is set in settings, server should automatically start
+        // isConfigured is updated to reflect the new state
+        // so that any extra checks not performed at startup are true
+        // and if isConfigured is false, it serves as a safety check
+        // where even if the bootstrap process returned exit code 0
+        // the safety will not be risked
         if (AICoreMod.Settings!.Enabled && (isConfigured = CheckConfigured()) == true)
         {
             ServerManager.UpdateRunningState(AICoreMod.Settings.Enabled);
@@ -576,6 +593,11 @@ public static class BootstrapTool // : IDisposable
                         LogTool.Warning($"Bootstrap process exited with non-zero code: {bootstrapProcess.ExitCode}");
                         ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
                     }
+                    else
+                    {
+                        // set to offline, because server won't start if it's detected as Busy
+                        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Offline);
+                    }
                 };
 
                 bootstrapProcess.ErrorDataReceived += (sender, args) =>
@@ -610,16 +632,19 @@ public static class BootstrapTool // : IDisposable
         catch (InvalidOperationException ex)
         {
             LogTool.Error($"Invalid operation error starting process: {ex}");
+            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
             return false;
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
             LogTool.Error($"Win32 error starting process: {ex}");
+            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
             return false;
         }
         catch (PlatformNotSupportedException ex)
         {
             LogTool.Error($"Platform not supported error starting process: {ex}");
+            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
             return false;
         }
     }
