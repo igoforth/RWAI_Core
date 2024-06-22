@@ -162,9 +162,9 @@ public partial class AICoreSettings : ModSettings
 
     private void DrawModsList(Rect rect)
     {
-#if DEBUG
-        LogTool.Debug("Entering DrawModsList method.");
-#endif
+        // #if DEBUG
+        //         LogTool.Debug("Entering DrawModsList method.");
+        // #endif
         if (AICoreMod.self == null || expansionMods == null || !expansionMods.Any())
         {
 #if DEBUG
@@ -175,9 +175,9 @@ public partial class AICoreSettings : ModSettings
             return;
         }
 
-#if DEBUG
-        LogTool.Debug($"Found {expansionMods.Count()} expansion mods.");
-#endif
+        // #if DEBUG
+        //         LogTool.Debug($"Found {expansionMods.Count()} expansion mods.");
+        // #endif
 
         Widgets.DrawBoxSolid(rect, new Color(0.05f, 0.05f, 0.05f, 0.75f));
         Rect scrollContentRect = new(0f, 0f, rect.width - 16, expansionMods.Count() * (cardSize + 10));
@@ -270,8 +270,8 @@ public partial class AICoreSettings : ModSettings
 
         Widgets.EndScrollView();
 
-#if DEBUG
-        LogTool.Debug("Exiting DrawModsList method.");
-#endif
+        // #if DEBUG
+        //         LogTool.Debug("Exiting DrawModsList method.");
+        // #endif
     }
 }

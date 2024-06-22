@@ -17,10 +17,11 @@ namespace AICore;
 //   Windows - %USERPROFILE%\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios\RWAI\
 //   Linux   - ~/.config/unity3d/Ludeon Studios/RimWorld by Ludeon Studios/RWAI/
 // files:
+// ./bin/curl (win curl.com)
 // ./bin/llamafile (win llamafile.com)
 // ./bin/python (win python.com)
 // ./models/Phi-3-mini-128k-instruct.Q4_K_M.gguf
-// ./AIServer.zip
+// ./AIServer.pyz
 // ./.version
 public static class BootstrapTool // : IDisposable
 {
@@ -353,10 +354,21 @@ public static class BootstrapTool // : IDisposable
         // Run bootstrapper only if the update was successful or not needed
         bool bootstrapResult = PerformBootstrap(pythonPath, scriptContent, token);
         // If the bootstrap or update failed, do not attempt to start
-        if (!bootstrapResult || token.IsCancellationRequested)
+        if (!bootstrapResult && token.IsCancellationRequested)
         {
-            LogTool.Error("Bootstrap process failed or was cancelled.");
+            LogTool.Error("Bootstrap process failed or was cancelled in a way that made it close unexpectedly.");
+            if (bootstrapProcess != null)
+            {
+                bootstrapProcess.Dispose();
+                bootstrapProcess = null;
+            }
             return;
+        }
+
+        if (bootstrapProcess != null)
+        {
+            bootstrapProcess.Dispose();
+            bootstrapProcess = null;
         }
 
         // If Enabled is set in settings, server should automatically start
@@ -569,6 +581,7 @@ public static class BootstrapTool // : IDisposable
             })
             {
                 bootstrapProcess.Start();
+                ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
 #if DEBUG
                 LogTool.Debug("Process started.");
 #endif
@@ -594,8 +607,12 @@ public static class BootstrapTool // : IDisposable
                             LogTool.Debug($"Output received: {outputLine}");
 #endif
                             var success = int.TryParse(outputLine, out percentComplete);
-                            // if (!success) LogTool.Warning(outputLine); // assume message is error
-                            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
+                            if (success)
+                                ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
+                            else
+                            {
+
+                            }
                         }
                     }
 
@@ -604,28 +621,27 @@ public static class BootstrapTool // : IDisposable
 #endif
 
                     bootstrapProcess.WaitForExit();
-                }
 
 #if DEBUG
-                var elapsedTime = Math.Round(
-                    (bootstrapProcess.ExitTime - bootstrapProcess.StartTime).TotalMilliseconds
-                );
-                LogTool.Debug($"Exit time    : {bootstrapProcess.ExitTime}");
-                LogTool.Debug($"Exit code    : {bootstrapProcess.ExitCode}");
-                LogTool.Debug($"Elapsed time : {elapsedTime}");
+                    var elapsedTime = Math.Round(
+                        (bootstrapProcess.ExitTime - bootstrapProcess.StartTime).TotalMilliseconds
+                    );
+                    LogTool.Debug($"Exit time    : {bootstrapProcess.ExitTime}");
+                    LogTool.Debug($"Exit code    : {bootstrapProcess.ExitCode}");
+                    LogTool.Debug($"Elapsed time : {elapsedTime}");
 #endif
 
-                if (bootstrapProcess.ExitCode != 0)
-                {
-                    LogTool.Warning($"Bootstrap process exited with non-zero code: {bootstrapProcess.ExitCode}");
-                    ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
+                    if (bootstrapProcess.ExitCode is not 0 and not 1)
+                    {
+                        LogTool.Warning($"Bootstrap process exited with non-zero code: {bootstrapProcess.ExitCode}");
+                        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
+                    }
+                    else
+                    {
+                        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Offline);
+                    }
+                    return bootstrapProcess.ExitCode is 0 or 1;
                 }
-                else
-                {
-                    ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Offline);
-                }
-
-                return bootstrapProcess.ExitCode == 0;
             }
         }
         catch (InvalidOperationException ex)
