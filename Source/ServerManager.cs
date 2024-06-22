@@ -81,7 +81,8 @@ public class ServerManager : IDisposable
     {
         currentServerStatusEnum = status;
         currentServerStatus = ("RWAI_" + status.ToString()).Translate();
-        LogTool.Message(currentServerStatus, "ServerSink");
+        if (currentServerStatusEnum == ServerStatus.Busy)
+            currentServerStatus += $" {BootstrapTool.percentComplete}%";
     }
 
     private static void StartProcess(CancellationToken token)
@@ -130,7 +131,6 @@ public class ServerManager : IDisposable
                 serverProcess.Start();
 
 #if DEBUG
-                // Read the output stream first and then wait.
                 serverProcess.BeginOutputReadLine();
 #endif
                 serverProcess.BeginErrorReadLine();

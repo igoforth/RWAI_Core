@@ -28,6 +28,7 @@ public static class BootstrapTool // : IDisposable
     public static bool Running => !onQuit.IsCancellationRequested;
     public static bool? internetAccess;
     public static bool? isConfigured;
+    public static int percentComplete;
     private const string releaseString =
         "https://api.github.com/repos/igoforth/RWAILib/releases/latest";
     private const string bootstrapString =
@@ -38,6 +39,7 @@ public static class BootstrapTool // : IDisposable
     private static string? shellBin;
     private static string? modPath;
     private static string? pythonPath;
+    private static string? scriptPath;
     private static string? llamaPath;
     private static readonly object lockObject = new();
     private static Process? bootstrapProcess;
@@ -68,6 +70,7 @@ public static class BootstrapTool // : IDisposable
             "bin",
             platform == OSPlatform.Windows ? "python.com" : "python"
         );
+        scriptPath = Path.Combine(modPath, "bootstrap.py");
         llamaPath = Path.Combine(
             modPath,
             "bin",
@@ -158,37 +161,43 @@ public static class BootstrapTool // : IDisposable
 
     private static bool CheckConfigured()
     {
-        var directory_path_list = new[]
+        var directoryPathList = new[]
         {
-            Path.Combine(modPath, "bin"),
-            Path.Combine(modPath, "models")
-        };
+        Path.Combine(modPath, "bin"),
+        Path.Combine(modPath, "models")
+    };
 
-        foreach (var file_path in directory_path_list)
-            if (!Directory.Exists(file_path))
+        foreach (var filePath in directoryPathList)
+            if (!Directory.Exists(filePath))
                 return false;
 
-        // TODO: do something smarter to detect models available
-        var files = Directory.GetFiles(Path.Combine(modPath, "models"));
+        // Check if the models directory contains any files
+        var modelsPath = Path.Combine(modPath, "models");
+        var files = Directory.GetFiles(modelsPath);
         if (files.Length == 0)
             return false;
 
-        var file_path_list = new[]
-        {
-            llamaPath,
-            pythonPath,
-            Path.Combine(modPath, "AIServer.pyz"),
-            Path.Combine(modPath, ".version")
-        };
+        // Calculate the total size of all files in the models directory
+        long totalSize = files.Sum(file => new FileInfo(file).Length);
 
-        foreach (var file_path in file_path_list)
-            if (!File.Exists(file_path))
+        // Check if total size is less than 2 GB (2 * 1024 * 1024 * 1024 bytes)
+        if (totalSize < 2L * 1024 * 1024 * 1024)
+            return false;
+
+        var filePathList = new[]
+        {
+        llamaPath,
+        pythonPath,
+        Path.Combine(modPath, "AIServer.pyz"),
+        Path.Combine(modPath, ".version")
+    };
+
+        foreach (var filePath in filePathList)
+            if (!File.Exists(filePath))
                 return false;
 
         return true;
     }
-
-
 
     private static (OSPlatform, Architecture) GetSystemInfo()
     {
@@ -308,7 +317,7 @@ public static class BootstrapTool // : IDisposable
         // Check for updates and decide if an update should be applied
         var (update, version) = await CheckServerUpdateAsync().ConfigureAwait(false);
         if (token.IsCancellationRequested) return;
-        if (!update)
+        if (!update && isConfigured == true)
         {
             LogTool.Message($"You are running version {version}");
             return;
@@ -335,13 +344,14 @@ public static class BootstrapTool // : IDisposable
 
         // Initialize placeholders in script
         scriptContent = InitializePlaceholders(scriptContent);
+        File.WriteAllText(scriptPath, scriptContent);
 
         // Turn off client and server so they don't interrupt update
         await AICoreMod.Client.UpdateRunningStateAsync(false).ConfigureAwait(false);
         ServerManager.UpdateRunningState(false);
 
         // Run bootstrapper only if the update was successful or not needed
-        bool bootstrapResult = await PerformBootstrapAsync(pythonPath, scriptContent, token).ConfigureAwait(false);
+        bool bootstrapResult = PerformBootstrap(pythonPath, scriptContent, token);
         // If the bootstrap or update failed, do not attempt to start
         if (!bootstrapResult || token.IsCancellationRequested)
         {
@@ -513,7 +523,7 @@ public static class BootstrapTool // : IDisposable
                     .ConfigureAwait(false);
     }
 
-    private static async Task<bool> PerformBootstrapAsync(string pythonPath, string scriptContent, CancellationToken token)
+    private static bool PerformBootstrap(string pythonPath, string scriptContent, CancellationToken token)
     {
         try
         {
@@ -546,86 +556,75 @@ public static class BootstrapTool // : IDisposable
                 EnableRaisingEvents = true,
                 StartInfo = {
                     FileName = shellBin,
-                    Arguments = "bin/python -",
+                    Arguments = $"bin/python -u bootstrap.py 2>&1",
                     WorkingDirectory = modPath,
-                    RedirectStandardInput = true,
-#if DEBUG
+                    // RedirectStandardInput = false,
                     RedirectStandardOutput = true,
                     StandardOutputEncoding = Encoding.UTF8,
-#endif
-                    RedirectStandardError = true,
-                    StandardErrorEncoding = Encoding.UTF8,
+                    // RedirectStandardError = true,
+                    // StandardErrorEncoding = Encoding.UTF8,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
             })
             {
                 bootstrapProcess.Start();
-
 #if DEBUG
-                // Read the output stream first and then wait.
-                bootstrapProcess.BeginOutputReadLine();
+                LogTool.Debug("Process started.");
 #endif
-                bootstrapProcess.BeginErrorReadLine();
-
-                // Write the multiline script content to the process
-                using (var sw = bootstrapProcess.StandardInput)
-                {
-                    if (sw.BaseStream.CanWrite)
-                    {
-                        await sw.WriteLineAsync(scriptContent).ConfigureAwait(false);
-                    }
-                }
-
-                bootstrapProcess.Exited += (sender, e) =>
-                {
-                    if (bootstrapProcess == null) return;
-#if DEBUG
-                    var elapsedTime = Math.Round(
-                        (bootstrapProcess.ExitTime - bootstrapProcess.StartTime).TotalMilliseconds
-                    );
-                    LogTool.Debug($"Exit time    : {bootstrapProcess.ExitTime}");
-                    LogTool.Debug($"Exit code    : {bootstrapProcess.ExitCode}");
-                    LogTool.Debug($"Elapsed time : {elapsedTime}");
-#endif
-                    if (bootstrapProcess.ExitCode != 0)
-                    {
-                        LogTool.Warning($"Bootstrap process exited with non-zero code: {bootstrapProcess.ExitCode}");
-                        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
-                    }
-                    else
-                    {
-                        // set to offline, because server won't start if it's detected as Busy
-                        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Offline);
-                    }
-                };
-
-                bootstrapProcess.ErrorDataReceived += (sender, args) =>
-                {
-                    if (!string.IsNullOrEmpty(args.Data))
-                        // LogTool.Error(args.Data, "UISink");
-                        LogTool.Error(args.Data);
-                };
-
-#if DEBUG
-                bootstrapProcess.OutputDataReceived += (sender, args) =>
-                {
-                    if (!string.IsNullOrEmpty(args.Data))
-                        // LogTool.Message(args.Data, "UISink");
-                        LogTool.Message(args.Data);
-                };
-#endif
-
-                ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
-
                 // Handling cancellation
                 using (var registration = token.Register(() =>
                 {
-                    if (!bootstrapProcess.HasExited) ProcessInterruptHelper.SendSigINT(bootstrapProcess);
+                    if (!bootstrapProcess.HasExited)
+                    {
+#if DEBUG
+                        LogTool.Debug("Sending SIGINT to process.");
+#endif
+                        ProcessInterruptHelper.SendSigINT(bootstrapProcess);
+                    }
                 }))
                 {
-                    await Task.Run(bootstrapProcess.WaitForExit, token).ConfigureAwait(false);
+                    using (StreamReader reader = bootstrapProcess.StandardOutput)
+                    {
+                        string outputLine;
+                        // Read output line by line synchronously
+                        while ((outputLine = reader.ReadLine()) != null)
+                        {
+#if DEBUG
+                            LogTool.Debug($"Output received: {outputLine}");
+#endif
+                            var success = int.TryParse(outputLine, out percentComplete);
+                            // if (!success) LogTool.Warning(outputLine); // assume message is error
+                            ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
+                        }
+                    }
+
+#if DEBUG
+                    LogTool.Debug("Finished reading output stream.");
+#endif
+
+                    bootstrapProcess.WaitForExit();
                 }
+
+#if DEBUG
+                var elapsedTime = Math.Round(
+                    (bootstrapProcess.ExitTime - bootstrapProcess.StartTime).TotalMilliseconds
+                );
+                LogTool.Debug($"Exit time    : {bootstrapProcess.ExitTime}");
+                LogTool.Debug($"Exit code    : {bootstrapProcess.ExitCode}");
+                LogTool.Debug($"Elapsed time : {elapsedTime}");
+#endif
+
+                if (bootstrapProcess.ExitCode != 0)
+                {
+                    LogTool.Warning($"Bootstrap process exited with non-zero code: {bootstrapProcess.ExitCode}");
+                    ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
+                }
+                else
+                {
+                    ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Offline);
+                }
+
                 return bootstrapProcess.ExitCode == 0;
             }
         }

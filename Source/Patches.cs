@@ -150,7 +150,8 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
     {
         Color background = new(0f, 0f, 0f, 0.8f);
         (int sw, int sh) = (UI.screenWidth, UI.screenHeight);
-        float statusWidth = 150f;
+        float statusWidth = 160f;
+        if (UpdateServerStatus.serverStatusEnum == ServerManager.ServerStatus.Busy) statusWidth = 180f;
         float statusHeight = 30f;
         float iconSize = 11f; // Size of the status icon
         float iconPadding = 10f; // Padding between icon and text
@@ -329,7 +330,8 @@ public static class GlobalControls_GlobalControlsOnGUI_Patch
     {
         Color background = new(0f, 0f, 0f, 0.4f);
         float sw = UI.screenWidth;
-        float statusWidth = 148f;
+        float statusWidth = 160f;
+        if (UpdateServerStatus.serverStatusEnum == ServerManager.ServerStatus.Busy) statusWidth = 180f;
         float statusHeight = 30f;
         float iconSize = 11f; // Size of the status icon
         float iconPadding = 10f; // Padding between icon and text
