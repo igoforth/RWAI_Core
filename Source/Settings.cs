@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -22,7 +23,7 @@ public partial class AICoreSettings : ModSettings
                 // to greet the user, or set the default state
                 // this will not trigger as a result of setting Enabled in Welcome
                 // as isConfigured should be false
-                if (BootstrapTool.isConfigured is not null and true)
+                if (BootstrapTool.IsConfigured)
                 {
                     JobClient.UpdateRunningState(value);
                     ServerManager.UpdateRunningState(value);
@@ -31,34 +32,92 @@ public partial class AICoreSettings : ModSettings
         }
     }
 
-    private void OnEnableSet(bool value)
-    {
-        if (MainMenuDrawer_MainMenuOnGUI_Patch.ShowWelcome) BootstrapTool.UpdateRunningState(value);
-        else BootstrapTool.UpdateRunningState(AutoUpdateCheck);
-    }
-
     public bool AutoUpdateCheck
     {
         get => autoUpdateCheck;
         set => autoUpdateCheck = value;
     }
 
+    public bool IsConfigured => Enabled && BootstrapTool.IsConfigured;
+
+    public ModelSize ActiveModelSize
+    {
+        get => activeModelSize;
+        set
+        {
+            activeModelSize = value;
+            OnActiveModelSizeSet();
+        }
+    }
+    public AICoreSettings()
+    {
+        UpdateAvailableModelSizes(ref AvailableModelSizes);
+    }
+
+    private void OnEnableSet(bool value)
+    {
+        if (MainMenuDrawer_MainMenuOnGUI_Patch.ShowWelcome) BootstrapTool.UpdateRunningState(value);
+        else BootstrapTool.UpdateRunningState(AutoUpdateCheck);
+    }
+
+    private static void OnActiveModelSizeSet()
+    {
+        // calling the getter will check that the model exists
+        // and update IsConfigured accordingly
+        _ = BootstrapTool.IsConfigured;
+    }
+
     private bool enabled;
     private bool autoUpdateCheck;
-    private IEnumerable<Mod>? expansionMods;
-    private const int cardSize = 90;
-    private readonly Dictionary<string, Texture2D> previewImageCache = [];
-    private readonly HashSet<string> attemptedPreviews = [];
-
+    private ModelSize activeModelSize;
     public override void ExposeData()
     {
         base.ExposeData();
 
         Scribe_Values.Look(ref enabled, "enabled", false);
         Scribe_Values.Look(ref autoUpdateCheck, "autoUpdateCheck", false);
+        Scribe_Values.Look(ref activeModelSize, "activeModelSize", ModelSize.MINI);
     }
 
-    public bool IsConfigured => Enabled && BootstrapTool.isConfigured is not null and true;
+    public enum ModelSize
+    {
+        MINI,
+        SMALL,
+        MEDIUM,
+        CUSTOM
+    }
+    public static Dictionary<ModelSize, (string name, int size)> AvailableModelSizes = new()
+    {
+        { ModelSize.CUSTOM, ("Custom", 0) },
+        { ModelSize.MINI, ("Mini", 2000) }
+    };
+    public static readonly Collection<ModelSize> ModelSizeOrder =
+    [
+        ModelSize.MEDIUM,
+        ModelSize.SMALL,
+        ModelSize.MINI,
+        ModelSize.CUSTOM
+    ];
+    public static void UpdateAvailableModelSizes(ref Dictionary<ModelSize, (string name, int size)> availableModelSizes)
+    {
+        // china does not have access to huggingface.co, and only Mini is on modelscope.cn
+        if (UpdateLanguage.activeLanguage is not SupportedLanguage.ChineseSimplified and not SupportedLanguage.ChineseTraditional)
+        {
+            if (BootstrapTool.VRAM > 4000 && !availableModelSizes.ContainsKey(ModelSize.SMALL)) availableModelSizes.Add(ModelSize.SMALL, ("Small", 4000));
+            if (BootstrapTool.VRAM > 8000 && !availableModelSizes.ContainsKey(ModelSize.MEDIUM)) availableModelSizes.Add(ModelSize.MEDIUM, ("Medium", 8000));
+        }
+        else
+        {
+            _ = availableModelSizes.Remove(ModelSize.SMALL);
+            _ = availableModelSizes.Remove(ModelSize.MEDIUM);
+        }
+    }
+
+    private IEnumerable<Mod>? expansionMods;
+    private const int cardSize = 90;
+    private readonly Dictionary<string, Texture2D> previewImageCache = [];
+    private readonly HashSet<string> attemptedPreviews = [];
+    private static SupportedLanguage activeLanguage = UpdateLanguage.activeLanguage;
     public Vector2 scrollPosition = Vector2.zero;
 
     public void DoWindowContents(Rect inRect)
@@ -86,6 +145,12 @@ public partial class AICoreSettings : ModSettings
                                mod.Content.ModMetaData.Active
                          select mod).ToList();
 
+        if (activeLanguage != UpdateLanguage.activeLanguage)
+        {
+            activeLanguage = UpdateLanguage.activeLanguage;
+            UpdateAvailableModelSizes(ref AvailableModelSizes);
+        }
+
 
         Listing_Standard listing = new();
         listing.Begin(rect);
@@ -96,12 +161,34 @@ public partial class AICoreSettings : ModSettings
         listing.CheckboxLabeled("RWAI_AutoUpdate".Translate(), ref autoUpdate);
         AutoUpdateCheck = autoUpdate;
 
+        listing.Gap(4);
+
+        // MODEL SIZE SELECTION
+
+        if (listing.ButtonTextLabeledPct("RWAI_ModelSize".Translate(), AvailableModelSizes.TryGetValue(activeModelSize).name, 0.8f, TextAnchor.MiddleLeft, null, null, null))
+        {
+            List<FloatMenuOption> options = [];
+            foreach (ModelSize size in ModelSizeOrder)
+            {
+                if (AvailableModelSizes.TryGetValue(size, out (string name, int vram) value))  // Check if the size is actually in the dictionary
+                {
+                    var (name, vram) = value;
+                    options.Add(new FloatMenuOption(("RWAI_Model" + name).Translate(), delegate
+                    {
+                        ActiveModelSize = size;
+                        Write();
+                    }, MenuOptionPriority.Default, null, null, 0f, null, null, true, 0));
+                }
+            }
+            Find.WindowStack.Add(new FloatMenu(options));
+        }
+
         // BUTTONS
 
         listing.Gap(48f);
 
         Listing_Standard serverListing = new();
-        var innerRect = new Rect(0f, 32f, listing.ColumnWidth, listing.CurHeight);
+        var innerRect = new Rect(0f, 64f, rect.xMax, listing.CurHeight);
         var widthLeft = innerRect.width;
         serverListing.Begin(innerRect);
 
@@ -112,7 +199,7 @@ public partial class AICoreSettings : ModSettings
         _ = serverListing.Label(UpdateServerStatus.serverStatus);
 
         serverListing.NewColumn();
-        colWidth = (widthLeft / 4) - 18f;
+        colWidth = (widthLeft / 4) - 17f;
         serverListing.ColumnWidth = colWidth;
         if (serverListing.ButtonText("Update"))
         {
@@ -146,7 +233,7 @@ public partial class AICoreSettings : ModSettings
 
         serverListing.End();
 
-        listing.Gap(48f);
+        listing.Gap(16f);
 
         _ = listing.Label("RWAI_Reset".Translate());
         GUI.color = Color.red;

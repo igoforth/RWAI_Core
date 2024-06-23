@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>Benvenuto in RimWorldAI!
 
-Hai scaricato la mod, ora facciamo partire l'AI! "Continua" scaricherà i file necessari dell'AI in background. Questo potrebbe richiedere un po' di tempo poiché i file variano tra i 2 e gli 8 GB - grazie per la tua pazienza!
+Hai scaricato il mod, ora facciamo partire l'IA! "Continua" scaricherà in background i file necessari dell'IA. Questo potrebbe richiedere un po' di tempo in quanto l'IA, a seconda delle dimensioni selezionate, varia tra 2 e 8 GB - grazie per la tua pazienza!
 
-Una volta configurata, RimWorldAI può funzionare interamente offline. Se disabiliti gli aggiornamenti automatici, non è necessaria alcuna connessione Internet, mantenendo le tue interazioni con l'AI private come i segreti della tua colonia!
+Una volta configurata, RimWorldAI può funzionare completamente offline. Se disattivi gli aggiornamenti automatici, non è necessaria alcuna connessione a Internet, mantenendo le tue interazioni con l'IA private come i segreti della tua colonia!
 
-Preferisci controllare gli aggiornamenti secondo il tuo programma? Basta andare nelle impostazioni per controllare manualmente quando vuoi.
+Preferisci controllare gli aggiornamenti secondo il tuo programma? Basta andare nelle impostazioni per controllare manualmente quando lo desideri.
 
-Attiva gli aggiornamenti automatici per mantenere senza sforzo la tua AI al massimo delle prestazioni, assicurandoti di avere sempre le migliori e ultime funzionalità.
+Abilita gli aggiornamenti automatici per mantenere la tua IA sempre al massimo della forma, garantendo di avere sempre le migliori e le più recenti funzionalità.
 
-Buona narrazione e che la tua colonia prosperi!</RWAI_Welcome><RWAI_AutoUpdate>Controlla automaticamente gli aggiornamenti:</RWAI_AutoUpdate><RWAI_Online>Server AI Online</RWAI_Online><RWAI_Busy>Server AI occupato</RWAI_Busy><RWAI_Error>Errore del server AI</RWAI_Error><RWAI_Offline>Server AI non disponibile</RWAI_Offline><RWAI_Reset>Questo tenterà di risolvere i problemi eliminando e riscaricando i file AI.</RWAI_Reset></LanguageData>
+Buona narrazione e che la tua colonia prosperi!</RWAI_Welcome><RWAI_AutoUpdate>Controlla automaticamente gli aggiornamenti.</RWAI_AutoUpdate><RWAI_Online>Server AI online</RWAI_Online><RWAI_Busy>Server AI occupato</RWAI_Busy><RWAI_Error>Errore del server AI</RWAI_Error><RWAI_Offline>Server AI offline</RWAI_Offline><RWAI_Reset>Questo tenterà di risolvere i problemi eliminando e riscaricando i file AI.</RWAI_Reset><RWAI_ModelSize>Dimensione dell'IA:</RWAI_ModelSize><RWAI_ModelMedium>Medio (8GB)</RWAI_ModelMedium><RWAI_ModelSmall>Piccolo (4GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2GB)</RWAI_ModelMini><RWAI_ModelCustom>Personalizzato (Avanzato)</RWAI_ModelCustom></LanguageData>

@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>Bem-vindo ao RimWorldAI!
 
-Você baixou o mod, agora vamos colocar a IA em funcionamento! "Continuar" fará o download dos arquivos necessários da IA em segundo plano. Isso pode demorar um pouco, pois os arquivos têm entre 2 e 8 GB - agradecemos sua paciência!
+Você baixou o mod, agora vamos colocar a IA em funcionamento! "Continuar" fará o download dos arquivos necessários da IA em segundo plano. Isso pode demorar um pouco, pois a IA, dependendo do tamanho selecionado, varia entre 2 a 8 GB - obrigado pela paciência!
 
 Uma vez configurado, o RimWorldAI pode funcionar totalmente offline. Se você desativar as atualizações automáticas, nenhuma conexão com a internet será necessária, mantendo suas interações com a IA tão privadas quanto os segredos da sua colônia!
 
-Prefere verificar as atualizações conforme sua própria agenda? Basta ir até as configurações para verificar manualmente sempre que desejar.
+Prefere verificar as atualizações no seu próprio ritmo? Basta ir para as configurações para verificar manualmente sempre que desejar.
 
 Ative as atualizações automáticas para manter sua IA em ótima forma sem esforço, garantindo que você sempre tenha os melhores e mais recentes recursos.
 
-Feliz narrativa e que sua colônia prospere!</RWAI_Welcome><RWAI_AutoUpdate>Verificar automaticamente a disponibilidade de atualizações:</RWAI_AutoUpdate><RWAI_Online>Servidor de IA Online</RWAI_Online><RWAI_Busy>Servidor de IA ocupado</RWAI_Busy><RWAI_Error>Erro no Servidor de IA</RWAI_Error><RWAI_Offline>Servidor de IA offline</RWAI_Offline><RWAI_Reset>Isso tentará corrigir problemas excluindo e baixando novamente os arquivos de IA.</RWAI_Reset></LanguageData>
+Feliz narrativa e que sua colônia prospere!</RWAI_Welcome><RWAI_AutoUpdate>Verificar atualizações automaticamente:</RWAI_AutoUpdate><RWAI_Online>Servidor de IA Online</RWAI_Online><RWAI_Busy>Servidor de IA ocupado</RWAI_Busy><RWAI_Error>Erro do Servidor de IA</RWAI_Error><RWAI_Offline>Servidor AI Offline</RWAI_Offline><RWAI_Reset>Isso tentará corrigir os problemas excluindo e redownloads dos arquivos de IA.</RWAI_Reset><RWAI_ModelSize>Tamanho da IA:</RWAI_ModelSize><RWAI_ModelMedium>Média (8GB)</RWAI_ModelMedium><RWAI_ModelSmall>Pequeno (4GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2GB)</RWAI_ModelMini><RWAI_ModelCustom>Personalizado (Avançado)</RWAI_ModelCustom></LanguageData>

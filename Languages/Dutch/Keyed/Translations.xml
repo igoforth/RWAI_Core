@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>Welkom bij RimWorldAI!
 
-Je hebt de mod gedownload, laten we de AI nu aan de praat krijgen! "Doorgaan" zal de benodigde AI-bestanden op de achtergrond downloaden. Dit kan even duren, aangezien de bestanden tussen de 2 en 8 GB zijn - bedankt voor je geduld!
+Je hebt de mod gedownload, laten we nu de AI aan de praat krijgen! "Doorgaan" zal de nodige AI-bestanden op de achtergrond downloaden. Dit kan even duren aangezien de AI, afhankelijk van de geselecteerde grootte, tussen de 2 en 8 GB is - bedankt voor je geduld!
 
-Eenmaal ingesteld, kan RimWorldAI volledig offline werken. Als je automatische updates uitschakelt, is er geen internetverbinding nodig, waardoor je AI-interacties net zo privé blijven als de geheimen van je kolonie!
+Eenmaal ingesteld kan RimWorldAI volledig offline werken. Als je automatische updates uitschakelt, is er geen internetverbinding nodig, waardoor je AI-interacties net zo privé blijven als de geheimen van je kolonie!
 
-Wil je liever zelf updates controleren? Ga dan naar instellingen om handmatig te controleren wanneer je maar wilt.
+Geef je er de voorkeur aan om updates op je eigen schema te controleren? Ga gewoon naar instellingen om handmatig te controleren wanneer je maar wilt.
 
 Schakel automatische updates in om moeiteloos je AI in topvorm te houden, zodat je altijd de beste en nieuwste functies hebt.
 
-Veel plezier met verhalen vertellen en moge je kolonie floreren!</RWAI_Welcome><RWAI_AutoUpdate>Controleer automatisch op updates:</RWAI_AutoUpdate><RWAI_Online>AI-server online</RWAI_Online><RWAI_Busy>AI-server bezet</RWAI_Busy><RWAI_Error>AI-serverfout</RWAI_Error><RWAI_Offline>AI-server offline</RWAI_Offline><RWAI_Reset>Dit zal proberen problemen op te lossen door de AI-bestanden te verwijderen en opnieuw te downloaden.</RWAI_Reset></LanguageData>
+Veel plezier met verhalen vertellen en moge je kolonie bloeien!</RWAI_Welcome><RWAI_AutoUpdate>Automatisch op updates controleren:</RWAI_AutoUpdate><RWAI_Online>AI Server Online</RWAI_Online><RWAI_Busy>AI-server bezig</RWAI_Busy><RWAI_Error>AI Serverfout</RWAI_Error><RWAI_Offline>AI-server offline</RWAI_Offline><RWAI_Reset>Dit zal proberen problemen op te lossen door de AI-bestanden te verwijderen en opnieuw te downloaden.</RWAI_Reset><RWAI_ModelSize>AI Grootte:</RWAI_ModelSize><RWAI_ModelMedium>Medium (8GB)</RWAI_ModelMedium><RWAI_ModelSmall>Klein (4GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2GB)</RWAI_ModelMini><RWAI_ModelCustom>Aangepast (Geavanceerd)</RWAI_ModelCustom></LanguageData>

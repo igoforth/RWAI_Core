@@ -83,20 +83,23 @@ public static class LanguageMapping
     public static SupportedLanguage GetLanguage()
     {
 #if DEBUG
-        LogTool.Debug("Attempting to get language using full folderName");
-        string fullFolderName = LanguageDatabase.activeLanguage.folderName;
-        if (LanguageMap.TryGetValue(fullFolderName.Trim(), out SupportedLanguage mappedLangFull))
+        // LogTool.Debug("Attempting to get language using full folderName");
+        if (LanguageDatabase.activeLanguage != null)
         {
-            LogTool.Debug($"Found language in LanguageMap using full folderName: {mappedLangFull}");
-            return mappedLangFull;
-        }
+            string fullFolderName = LanguageDatabase.activeLanguage.folderName;
+            if (LanguageMap.TryGetValue(fullFolderName.Trim(), out SupportedLanguage mappedLangFull))
+            {
+                // LogTool.Debug($"Found language in LanguageMap using full folderName: {mappedLangFull}");
+                return mappedLangFull;
+            }
 
-        LogTool.Debug("Attempting to get language using trimmed folderName");
-        string trimmedFolderName = fullFolderName.Split(' ')[0];
-        if (LanguageMap.TryGetValue(trimmedFolderName.Trim(), out SupportedLanguage mappedLangTrimmed))
-        {
-            LogTool.Debug($"Found language in LanguageMap using trimmed folderName: {mappedLangTrimmed}");
-            return mappedLangTrimmed;
+            LogTool.Debug("Attempting to get language using trimmed folderName");
+            string trimmedFolderName = fullFolderName.Split(' ')[0];
+            if (LanguageMap.TryGetValue(trimmedFolderName.Trim(), out SupportedLanguage mappedLangTrimmed))
+            {
+                LogTool.Debug($"Found language in LanguageMap using trimmed folderName: {mappedLangTrimmed}");
+                return mappedLangTrimmed;
+            }
         }
 
         // If the above fails, check Steam's current game language if Steam is initialized
@@ -126,7 +129,7 @@ public static class LanguageMapping
         LogTool.Debug("Defaulting to English");
         return SupportedLanguage.English;
 #else
-        string folderName = LanguageDatabase.activeLanguage.folderName;
+        string folderName = (LanguageDatabase.activeLanguage != null) ? LanguageDatabase.activeLanguage.folderName : "UNKNOWN";
         string steamLang = SteamManager.Initialized ? SteamApps.GetCurrentGameLanguage().CapitalizeFirst() : "";
         string appLang = Application.systemLanguage.ToStringSafe();
 

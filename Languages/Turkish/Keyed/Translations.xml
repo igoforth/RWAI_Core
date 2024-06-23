@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>RimWorldAI'ye hoş geldiniz!
 
-Modu indirdiniz, şimdi yapay zekayı çalıştıralım! "Devam Et" butonuna tıklayarak gerekli yapay zeka dosyalarının arka planda indirilmesini başlatabilirsiniz. Bu işlem biraz zaman alabilir zira dosyaların boyutu 2 ile 8 GB arasında değişmektedir - sabrınız için teşekkürler!
+Modu indirdiniz, şimdi AI'yi çalıştırmaya başlayalım! "Devam et" gerekli AI dosyalarını arka planda indirecek. AI'nın büyüklüğüne bağlı olarak bu biraz zaman alabilir, çünkü dosyalar 2 ile 8 GB arasında değişmektedir - sabrınız için teşekkür ederiz!
 
-Kurulum tamamlandıktan sonra, RimWorldAI tamamen çevrimdışı çalışabilir. Otomatik güncellemeleri devre dışı bırakırsanız, internet bağlantısına gerek kalmaz ve yapay zeka etkileşimleriniz koloninizin sırları kadar gizli kalır!
+Kurulum tamamlandıktan sonra, RimWorldAI tamamen çevrimdışı çalışabilir. Otomatik güncellemeleri devre dışı bırakırsanız, internet bağlantısına ihtiyaç duyulmaz ve AI etkileşimleriniz koloni sırlarınız kadar gizli kalır!
 
-Güncellemeleri kendi takviminize göre mi kontrol etmek istiyorsunuz? İstediğiniz zaman manuel olarak kontrol edebilmek için ayarlara gitmeniz yeterli.
+Güncellemeleri kendi programınıza göre kontrol etmek mi istiyorsunuz? Ayarlara giderek dilediğiniz zaman manuel olarak kontrol edebilirsiniz.
 
-Yapay zekanızı en iyi ve en yeni özelliklerle donatmak için otomatik güncellemeleri etkinleştirin ve sorunsuz bir şekilde güncel kalmasını sağlayın.
+AI'nizi her zaman en iyi ve en yeni özelliklerle tutmak için otomatik güncellemeleri etkinleştirin, böylece AI'niz her zaman en iyi durumda kalır.
 
-Mutlu hikayeler ve koloninizin başarılarla dolu olması dileğiyle!</RWAI_Welcome><RWAI_AutoUpdate>Güncellemeleri Otomatik Olarak Kontrol Et:</RWAI_AutoUpdate><RWAI_Online>AI Sunucusu Çevrimiçi</RWAI_Online><RWAI_Busy>AI Sunucusu Meşgul</RWAI_Busy><RWAI_Error>AI Sunucu Hatası</RWAI_Error><RWAI_Offline>Yapay Zeka Sunucusu Çevrimdışı</RWAI_Offline><RWAI_Reset>Bu, sorunları gidermeye çalışmak için AI dosyalarını silip yeniden indirir.</RWAI_Reset></LanguageData>
+Mutlu hikaye anlatımları ve koloni hayatınızın başarılı geçmesini dileriz!</RWAI_Welcome><RWAI_AutoUpdate>Güncellemeleri Otomatik Olarak Kontrol Et:</RWAI_AutoUpdate><RWAI_Online>AI Sunucusu Çevrimiçi</RWAI_Online><RWAI_Busy>AI Sunucusu Meşgul</RWAI_Busy><RWAI_Error>Yapay Zeka Sunucu Hatası</RWAI_Error><RWAI_Offline>AI Sunucusu Çevrimdışı</RWAI_Offline><RWAI_Reset>Bu, sorunları çözmek için AI dosyalarını silip yeniden indirerek deneme yapacak.</RWAI_Reset><RWAI_ModelSize>Yapay Zeka Boyutu:</RWAI_ModelSize><RWAI_ModelMedium>Orta (8GB)</RWAI_ModelMedium><RWAI_ModelSmall>Küçük (4GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2GB)</RWAI_ModelMini><RWAI_ModelCustom>Özel (Gelişmiş)</RWAI_ModelCustom></LanguageData>

@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>Vítejte v RimWorldAI!
 
-Stáhli jste si mod, tak pojďme nyní spustit AI! Kliknutím na "Pokračovat" začnete stahovat potřebné AI soubory na pozadí. To může chvíli trvat, protože soubory mají velikost mezi 2 až 8 GB - děkujeme za vaši trpělivost!
+Stáhli jste si mod, teď spustíme AI! "Pokračovat" stáhne potřebné AI soubory na pozadí. To může chvíli trvat, protože AI má velikost mezi 2 a 8 GB v závislosti na zvoleném rozsahu - díky za trpělivost!
 
-Jakmile je vše nastaveno, RimWorldAI může běžet zcela offline. Pokud vypnete automatické aktualizace, není potřeba žádné připojení k internetu, což zajistí, že vaše interakce s AI zůstanou stejně soukromé jako tajemství vaší kolonie!
+Jakmile je nastaveno, RimWorldAI může běžet zcela offline. Pokud deaktivujete automatické aktualizace, není potřeba žádné připojení k internetu, což udrží vaše interakce s AI stejně soukromé jako tajemství vaší kolonie!
 
-Chcete raději kontrolovat aktualizace podle vlastního plánu? Jednoduše přejděte do nastavení a zkontrolujte je ručně, kdykoliv budete chtít.
+Raději kontrolujete aktualizace podle vlastního plánu? Jednoduše jděte do nastavení a zkontrolujte manuálně, kdykoliv budete chtít.
 
-Povolením automatických aktualizací udržíte AI v dokonalém stavu bez námahy a zajistíte si vždy ty nejlepší a nejnovější funkce.
+Zapněte automatické aktualizace, aby vaše AI zůstala v perfektním stavu a vždy nabízela nejlepší a nejnovější funkce.
 
-Šťastné vyprávění příběhů a ať vaše kolonie jen vzkvétá!</RWAI_Welcome><RWAI_AutoUpdate>Automaticky kontrolovat aktualizace:</RWAI_AutoUpdate><RWAI_Online>Server AI online</RWAI_Online><RWAI_Busy>Server AI je zaneprázdněný</RWAI_Busy><RWAI_Error>Chyba serveru AI</RWAI_Error><RWAI_Offline>Server AI je offline.</RWAI_Offline><RWAI_Reset>To se pokusí vyřešit problémy odstraněním a opětovným stažením souborů AI.</RWAI_Reset></LanguageData>
+Šťastné vyprávění a ať vaše kolonie prosperuje!</RWAI_Welcome><RWAI_AutoUpdate>Automaticky kontrolovat aktualizace:</RWAI_AutoUpdate><RWAI_Online>Server AI online</RWAI_Online><RWAI_Busy>Server AI je zaneprázdněn</RWAI_Busy><RWAI_Error>Chyba serveru AI</RWAI_Error><RWAI_Offline>AI server offline</RWAI_Offline><RWAI_Reset>Tím se pokusí vyřešit problémy odstraněním a opětovným stažením souborů AI.</RWAI_Reset><RWAI_ModelSize>Velikost AI:</RWAI_ModelSize><RWAI_ModelMedium>Střední (8GB)</RWAI_ModelMedium><RWAI_ModelSmall>Malý (4 GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2 GB)</RWAI_ModelMini><RWAI_ModelCustom>Vlastní (Pokročilý)</RWAI_ModelCustom></LanguageData>

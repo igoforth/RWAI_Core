@@ -3,8 +3,10 @@ using System.IO.Compression;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NuGet.Versioning;
 using UnityEngine;
 using UnityEngine.Networking;
 using Verse;
@@ -27,14 +29,36 @@ public static class BootstrapTool // : IDisposable
 {
     public static CancellationTokenSource onQuit = new();
     public static bool Running => !onQuit.IsCancellationRequested;
-    public static bool? internetAccess;
-    public static bool? isConfigured;
-    public static int percentComplete;
+    public static bool IsConfigured
+    {
+        get
+        {
+            if (isConfigured == null)
+            {
+                isConfigured = CheckConfigured();
+                return (bool)isConfigured;
+            }
+            else if (AICoreMod.Settings != null && modelPreference != AICoreMod.Settings.ActiveModelSize)
+            {
+                modelPreference = AICoreMod.Settings.ActiveModelSize;
+                isConfigured = CheckConfigured();
+                return (bool)isConfigured;
+            }
+            return (bool)isConfigured;
+        }
+    }
+    public static int PercentComplete;
+    public static int VRAM;
+    public static SemanticVersion ServerVersion => serverVersion ?? SemanticVersion.Parse("0.1.0-alpha");
     private const string releaseString =
         "https://api.github.com/repos/igoforth/RWAILib/releases/latest";
     private const string bootstrapString =
         "https://github.com/igoforth/RWAILib/releases/latest/download/bootstrap.py";
     private const string pythonString = "https://cosmo.zip/pub/cosmos/bin/python";
+    private static AICoreSettings.ModelSize modelPreference = AICoreSettings.ModelSize.MINI;
+    private static bool? isConfigured;
+    private static SemanticVersion? serverVersion;
+    private static bool? internetAccess;
     private static OSPlatform platform;
     private static Architecture arch;
     private static string? shellBin;
@@ -54,7 +78,7 @@ public static class BootstrapTool // : IDisposable
     public static void Init()
     {
         // hardware detection
-        (platform, arch) = GetSystemInfo();
+        (platform, arch, VRAM) = GetSystemInfo();
         SetGrpcOverrideLocation(platform, arch);
 
         // modPath related settings
@@ -131,6 +155,69 @@ public static class BootstrapTool // : IDisposable
         }
     }
 
+
+    public static bool CheckConfigured()
+    {
+        var directoryPathList = new[]
+        {
+            Path.Combine(modPath, "bin"),
+            Path.Combine(modPath, "models")
+        };
+
+        // Check if directories exist
+        foreach (var filePath in directoryPathList)
+            if (!Directory.Exists(filePath))
+                return false;
+
+        var filePathList = new[]
+        {
+            llamaPath,
+            pythonPath,
+            Path.Combine(modPath, "AIServer.pyz"),
+            Path.Combine(modPath, ".version")
+        };
+
+        // Check if files exist
+        foreach (var filePath in filePathList)
+            if (!File.Exists(filePath))
+                return false;
+
+        // Get model size details from settings
+        var modelsPath = Path.Combine(modPath, "models");
+        var (_, size) = AICoreSettings.AvailableModelSizes.TryGetValue(modelPreference);
+        ulong modelSizeBytes = ((ulong)size) * 1000 * 1000;
+
+        // temporary fixes
+#pragma warning disable CA1308 // Normalize strings to uppercase
+        var tempModelName = modelPreference.ToString().ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
+        if (tempModelName == "small") tempModelName = "medium"; // temporary because there is no Phi-3-small gguf yet
+        // if (tempModelName == "any") tempModelName = "mini"; // If wildcard "any" model name, check for mini
+
+        // Get all files in models directory
+        var files = Directory.GetFiles(modelsPath);
+        if (files.Length == 0)
+            return false;
+        // if "custom" and directory is not empty
+        else if (tempModelName == "custom")
+            return true;
+
+        // Get files that match the model size name pattern
+        files = Directory.GetFiles(modelsPath, "*" + tempModelName + "*");
+        if (files.Length == 0)
+            return false;
+
+        // Ensure each file in "files" is at least above modelSizeBytes
+        foreach (var file in files)
+        {
+            FileInfo fileInfo = new(file);
+            if (fileInfo.Length < (long)modelSizeBytes)
+                return false; // If any file is below the size threshold, return false
+        }
+
+        return true; // All checks passed
+    }
+
     private static void Start()
     {
         lock (lockObject)
@@ -141,6 +228,10 @@ public static class BootstrapTool // : IDisposable
             // Reset the CancellationTokenSource when starting
             onQuit.Dispose();
             onQuit = new CancellationTokenSource();
+
+            // Turn off client and server so they don't interrupt update
+            AICoreMod.Client.UpdateRunningStateAsync(false).Wait();
+            ServerManager.UpdateRunningState(false);
 
             // Start the bootstrap process
             Run(onQuit.Token);
@@ -160,47 +251,7 @@ public static class BootstrapTool // : IDisposable
         }
     }
 
-    private static bool CheckConfigured()
-    {
-        var directoryPathList = new[]
-        {
-        Path.Combine(modPath, "bin"),
-        Path.Combine(modPath, "models")
-    };
-
-        foreach (var filePath in directoryPathList)
-            if (!Directory.Exists(filePath))
-                return false;
-
-        // Check if the models directory contains any files
-        var modelsPath = Path.Combine(modPath, "models");
-        var files = Directory.GetFiles(modelsPath);
-        if (files.Length == 0)
-            return false;
-
-        // Calculate the total size of all files in the models directory
-        long totalSize = files.Sum(file => new FileInfo(file).Length);
-
-        // Check if total size is less than 2 GB (2 * 1024 * 1024 * 1024 bytes)
-        if (totalSize < 2L * 1024 * 1024 * 1024)
-            return false;
-
-        var filePathList = new[]
-        {
-        llamaPath,
-        pythonPath,
-        Path.Combine(modPath, "AIServer.pyz"),
-        Path.Combine(modPath, ".version")
-    };
-
-        foreach (var filePath in filePathList)
-            if (!File.Exists(filePath))
-                return false;
-
-        return true;
-    }
-
-    private static (OSPlatform, Architecture) GetSystemInfo()
+    private static (OSPlatform, Architecture, int) GetSystemInfo()
     {
         var platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? OSPlatform.Windows
@@ -219,7 +270,20 @@ public static class BootstrapTool // : IDisposable
             _ => throw new PlatformNotSupportedException("Unsupported architecture.")
         };
 
-        return (platform, arch);
+        var vram = GetVRAM();
+
+        return (platform, arch, vram);
+    }
+
+    private static SemanticVersion ParseVersion(string version)
+    {
+        version = version.Trim();
+        // Strip "v" from the beginning of the version if it exists
+        if (version.StartsWith("v"))
+        {
+            version = version[1..];
+        }
+        return SemanticVersion.Parse(version);
     }
 
     private static void SetGrpcOverrideLocation(OSPlatform platform, Architecture arch)
@@ -313,6 +377,55 @@ public static class BootstrapTool // : IDisposable
         }
     }
 
+
+    private static int GetVRAM()
+    {
+        // Construct the full path to the Player.log file
+        var playerLogPath = Path.Combine(Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(), "Player.log");
+        string tempPath = Path.GetTempFileName(); // Creates a temporary file
+
+        // Verify that the file exists before attempting to open it
+        if (!File.Exists(playerLogPath))
+        {
+            Console.WriteLine("Player log file does not exist: " + playerLogPath);
+            return 0; // Return 0 if the file doesn't exist
+        }
+
+        // Create a regex pattern to match VRAM information
+        var regex = new Regex(@"^\s+VRAM:\s+(\d+) MB$", RegexOptions.Multiline);
+
+        try
+        {
+            File.Copy(playerLogPath, tempPath, true); // Copy the original file to a temp file, overwriting it if it already exists
+            // Open the file with read access and allow other processes to read from it too
+            using (StreamReader reader = new(tempPath))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null) // Read line by line
+                {
+                    var match = regex.Match(line);
+                    if (match.Success)
+                    {
+                        // If a match is found, parse the VRAM value and return it
+                        return int.Parse(match.Groups[1].Value);
+                    }
+                }
+            }
+        }
+        catch (IOException ex)
+        {
+            // Log or handle the exception as needed
+            LogTool.Error("An error occurred while reading the VRAM from the log file: " + ex.Message);
+        }
+        finally
+        {
+            File.Delete(tempPath); // Clean up the temp file
+        }
+
+        // Return 0 if no VRAM information is found or if an error occurs
+        return 0;
+    }
+
     private static async Task ManageBootstrapAsync(CancellationToken token)
     {
         // Check for updates and decide if an update should be applied
@@ -321,11 +434,17 @@ public static class BootstrapTool // : IDisposable
         if (!update && isConfigured == true)
         {
             LogTool.Message($"You are running version {version}");
+            serverVersion = version;
+            if (AICoreMod.Settings!.Enabled && (isConfigured = CheckConfigured()) == true)
+            {
+                ServerManager.UpdateRunningState(AICoreMod.Settings.Enabled);
+                await AICoreMod.Client.UpdateRunningStateAsync(AICoreMod.Settings.Enabled).ConfigureAwait(false);
+            }
             return;
         }
         else
         {
-            if (version == "_") LogTool.Message("RWAI files haven't been found!");
+            if (version == ParseVersion("0.0.0")) LogTool.Message("RWAI files haven't been found!");
             else LogTool.Message($"RWAI has found a new version: {version}");
         }
 
@@ -346,10 +465,6 @@ public static class BootstrapTool // : IDisposable
         // Initialize placeholders in script
         scriptContent = InitializePlaceholders(scriptContent);
         File.WriteAllText(scriptPath, scriptContent);
-
-        // Turn off client and server so they don't interrupt update
-        await AICoreMod.Client.UpdateRunningStateAsync(false).ConfigureAwait(false);
-        ServerManager.UpdateRunningState(false);
 
         // Run bootstrapper only if the update was successful or not needed
         bool bootstrapResult = PerformBootstrap(pythonPath, scriptContent, token);
@@ -385,16 +500,16 @@ public static class BootstrapTool // : IDisposable
     }
 
     // compare github api against pinned "./.version"
-    private static async Task<(bool shouldUpdate, string version)> CheckServerUpdateAsync()
+    private static async Task<(bool shouldUpdate, SemanticVersion version)> CheckServerUpdateAsync()
     {
-        string oldVersion = "_";
+        SemanticVersion oldVersion = ParseVersion("0.0.0");
 
         try
         {
             // check for ".version" file
             var versionPath = Path.Combine(modPath, ".version");
-            if (!File.Exists(versionPath)) return (true, "_");
-            oldVersion = File.ReadAllText(versionPath);
+            if (!File.Exists(versionPath)) return (true, oldVersion);
+            oldVersion = ParseVersion(File.ReadAllText(versionPath));
 
             // check for internet
             internetAccess = CheckInternet();
@@ -407,13 +522,13 @@ public static class BootstrapTool // : IDisposable
             string apiContent = await Download(ContentType.Content, releaseUrl, userAgent).ConfigureAwait(false);
 
             var json = JObject.Parse(apiContent);
-            string newVersion = (string)json["tag_name"];
-            return newVersion != oldVersion ? ((bool shouldUpdate, string version))(true, newVersion) : ((bool shouldUpdate, string version))(false, oldVersion);
+            SemanticVersion newVersion = ParseVersion((string)json["tag_name"]);
+            return newVersion > oldVersion ? ((bool shouldUpdate, SemanticVersion version))(true, newVersion) : ((bool shouldUpdate, SemanticVersion version))(false, oldVersion);
         }
         catch (FileNotFoundException ex)
         {
             LogTool.Warning($"File not found: {ex}");
-            return (true, "_");
+            return (true, oldVersion);
         }
         catch (UriFormatException ex)
         {
@@ -466,11 +581,15 @@ public static class BootstrapTool // : IDisposable
 
     private static string InitializePlaceholders(string script)
     {
+        // Modify language placeholder
         string placeholder = "PLACEHOLDER_STRING_LANGUAGE";
-
-        string languageValue = LanguageMapping.FindKeyByValue(LanguageMapping.GetLanguage());
-
+        string languageValue = LanguageMapping.FindKeyByValue(UpdateLanguage.activeLanguage);
         script = script.Replace(placeholder, languageValue);
+
+        // Modify model size placeholder
+        placeholder = "PLACEHOLDER_STRING_MODELSIZE";
+        string modelSize = AICoreMod.Settings!.ActiveModelSize.ToString();
+        script = script.Replace(placeholder, modelSize);
 
         return script;
     }
@@ -606,7 +725,7 @@ public static class BootstrapTool // : IDisposable
 #if DEBUG
                             LogTool.Debug($"Output received: {outputLine}");
 #endif
-                            var success = int.TryParse(outputLine, out percentComplete);
+                            var success = int.TryParse(outputLine, out PercentComplete);
                             if (success)
                                 ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
                             else
@@ -621,6 +740,8 @@ public static class BootstrapTool // : IDisposable
 #endif
 
                     bootstrapProcess.WaitForExit();
+
+                    serverVersion = ParseVersion(File.ReadAllText(Path.Combine(modPath, ".version")));
 
 #if DEBUG
                     var elapsedTime = Math.Round(

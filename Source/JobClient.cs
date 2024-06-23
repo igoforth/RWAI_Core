@@ -101,7 +101,7 @@ public class JobClient : IDisposable
         }
 
         jobRequest.Time = Timestamp.FromDateTime(DateTime.UtcNow);
-        jobRequest.Language = LanguageMapping.GetLanguage();
+        jobRequest.Language = UpdateLanguage.activeLanguage;
 
         try
         {

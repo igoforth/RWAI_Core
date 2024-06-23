@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>Välkommen till RimWorldAI!
 
-Du har laddat ner modden, nu ska vi få igång AI:n! "Fortsätt" kommer att ladda ner de nödvändiga AI-filerna i bakgrunden. Detta kan ta ett litet tag eftersom filerna är mellan 2 och 8 GB - tack för ditt tålamod!
+Du har laddat ner modden, nu låt oss få AI igång! "Fortsätt" kommer ladda ner de nödvändiga AI-filerna i bakgrunden. Detta kan ta lite tid då AI-filerna, beroende på vald storlek, är mellan 2 till 8 GB - tack för ditt tålamod!
 
-När den är installerad kan RimWorldAI köras helt offline. Om du inaktiverar automatiska uppdateringar behövs ingen internetanslutning, vilket håller dina AI-interaktioner lika privata som dina kolonihemligheter!
+När installationen är klar kan RimWorldAI köras helt offline. Om du inaktiverar automatiska uppdateringar behövs ingen internetanslutning, vilket håller dina AI-interaktioner lika privata som dina kolonihemligheter!
 
-Föredrar du att söka efter uppdateringar på egen hand? Gå helt enkelt till inställningarna för att manuellt söka när du vill.
+Föredrar du att söka efter uppdateringar enligt ditt eget schema? Gå helt enkelt till inställningarna för att manuellt söka när du vill.
 
-Aktivera automatiska uppdateringar för att enkelt hålla din AI i toppskick och säkerställa att du alltid har de bästa och senaste funktionerna.
+Aktivera automatiska uppdateringar för att enkelt hålla din AI i toppskick, vilket säkerställer att du alltid har de bästa och senaste funktionerna.
 
-Lycka till med berättandet och må din koloni blomstra!</RWAI_Welcome><RWAI_AutoUpdate>Sök efter uppdateringar automatiskt:</RWAI_AutoUpdate><RWAI_Online>AI-servern online</RWAI_Online><RWAI_Busy>AI-servern är upptagen</RWAI_Busy><RWAI_Error>AI-serverfel</RWAI_Error><RWAI_Offline>AI-server offline</RWAI_Offline><RWAI_Reset>Detta kommer att försöka åtgärda problem genom att ta bort och ladda ner AI-filerna på nytt.</RWAI_Reset></LanguageData>
+Lycka till med berättandet och må din koloni blomstra!</RWAI_Welcome><RWAI_AutoUpdate>Sök efter uppdateringar automatiskt:</RWAI_AutoUpdate><RWAI_Online>AI-server online</RWAI_Online><RWAI_Busy>AI-servern är upptagen</RWAI_Busy><RWAI_Error>AI-serverfel</RWAI_Error><RWAI_Offline>AI-servern är offline</RWAI_Offline><RWAI_Reset>Detta kommer att försöka åtgärda problem genom att radera och ladda ner AI-filerna på nytt.</RWAI_Reset><RWAI_ModelSize>Storlek på AI:</RWAI_ModelSize><RWAI_ModelMedium>Medium (8GB)</RWAI_ModelMedium><RWAI_ModelSmall>Liten (4GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2 GB)</RWAI_ModelMini><RWAI_ModelCustom>Anpassad (Avancerad)</RWAI_ModelCustom></LanguageData>

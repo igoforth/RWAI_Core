@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>¡Bienvenido a RimWorldAI!
 
-Has descargado el mod, ¡ahora pongamos en marcha la IA! "Continuar" descargará los archivos necesarios de la IA en segundo plano. Esto puede tardar un poco ya que los archivos tienen entre 2 y 8 GB; ¡gracias por tu paciencia!
+Has descargado el mod, ¡ahora pongamos en marcha la IA! "Continuar" descargará los archivos necesarios de la IA en segundo plano. Esto puede tardar un poco, ya que la IA, dependiendo del tamaño seleccionado, ocupa entre 2 y 8 GB - ¡gracias por tu paciencia!
 
-Una vez configurado, RimWorldAI puede funcionar completamente sin conexión. Si desactivas las actualizaciones automáticas, no se necesita conexión a Internet, manteniendo tus interacciones con la IA tan privadas como los secretos de tu colonia.
+Una vez configurado, RimWorldAI puede funcionar completamente sin conexión. Si desactivas las actualizaciones automáticas, no se necesita conexión a internet, manteniendo tus interacciones con la IA tan privadas como los secretos de tu colonia.
 
-¿Prefieres buscar actualizaciones en tu propio horario? Simplemente ve a la configuración para buscar manualmente cuando desees.
+¿Prefieres buscar actualizaciones en tu propio horario? Simplemente dirígete a la configuración para buscarlas manualmente cuando desees.
 
-Habilita las actualizaciones automáticas para mantener tu IA en perfecto estado, asegurándote de tener siempre las mejores y más recientes funciones.
+Habilita las actualizaciones automáticas para mantener tu IA en perfecto estado, asegurándote siempre de tener las mejores y más recientes características.
 
-¡Feliz narración y que tu colonia prospere!</RWAI_Welcome><RWAI_AutoUpdate>Buscar actualizaciones automáticamente.</RWAI_AutoUpdate><RWAI_Online>Servidor de IA en línea</RWAI_Online><RWAI_Busy>Servidor de IA ocupado</RWAI_Busy><RWAI_Error>Error de servidor de IA</RWAI_Error><RWAI_Offline>Servidor de IA fuera de línea</RWAI_Offline><RWAI_Reset>Esto intentará solucionar los problemas eliminando y volviendo a descargar los archivos de IA.</RWAI_Reset></LanguageData>
+¡Feliz narrativa y que tu colonia prospere!</RWAI_Welcome><RWAI_AutoUpdate>Buscar actualizaciones automáticamente:</RWAI_AutoUpdate><RWAI_Online>Servidor de IA en línea</RWAI_Online><RWAI_Busy>Servidor de IA ocupado</RWAI_Busy><RWAI_Error>Error del servidor de IA</RWAI_Error><RWAI_Offline>Servidor de IA fuera de línea</RWAI_Offline><RWAI_Reset>Esto intentará solucionar problemas eliminando y volviendo a descargar los archivos de IA.</RWAI_Reset><RWAI_ModelSize>Tamaño de IA:</RWAI_ModelSize><RWAI_ModelMedium>Medio (8GB)</RWAI_ModelMedium><RWAI_ModelSmall>Pequeño (4GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2GB)</RWAI_ModelMini><RWAI_ModelCustom>Personalizado (Avanzado)</RWAI_ModelCustom></LanguageData>

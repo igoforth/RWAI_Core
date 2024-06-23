@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>Tervetuloa RimWorldAI:n pariin!
 
-Olet ladannut modin, joten otetaan nyt AI käyttöön! "Jatka" lataa tarvittavat AI-tiedostot taustalla. Tämä saattaa kestää hetken, sillä tiedostojen koko vaihtelee 2-8 GB:n välillä - kiitos kärsivällisyydestäsi!
+Olet nyt ladannut modin, joten käynnistetään AI! "Jatka" -painikkeella voit ladata tarvittavat AI-tiedostot taustalla. Tämä voi kestää hetken riippuen valitun AI:n koosta, joka on 2–8 GB – kiitos kärsivällisyydestäsi!
 
-Kun asetukset on tehty, RimWorldAI voi toimia täysin offline-tilassa. Jos poistat automaattiset päivitykset käytöstä, et tarvitse internet-yhteyttä, joten AI-yhteytesi pysyvät yhtä yksityisinä kuin siirtokuntasi salaisuudet!
+Käyttöönoton jälkeen RimWorldAI voi toimia täysin offline-tilassa. Jos poistat automaattiset päivitykset käytöstä, internet-yhteyttä ei tarvita, mikä pitää AI-vuorovaikutuksesi yhtä yksityisinä kuin siirtokuntasi salaisuudet!
 
-Haluatko tarkistaa päivitykset oman aikataulusi mukaan? Siirry vain asetuksiin tarkistaaksesi manuaalisesti milloin tahansa.
+Haluatko tarkistaa päivitykset omalla aikataulullasi? Mene asetuksiin tarkistaaksesi manuaalisesti milloin haluat.
 
-Ota käyttöön automaattiset päivitykset, jotta AI pysyy vaivattomasti huippukunnossa ja varmistat, että sinulla on aina parhaat ja uusimmat ominaisuudet.
+Ota automaattiset päivitykset käyttöön, jotta AI pysyy huippukunnossa vaivattomasti ja sinulla on aina parhaat ja uusimmat ominaisuudet käytettävissäsi.
 
-Mukavaa tarinankerrontaa ja menestystä siirtokunnallesi!</RWAI_Welcome><RWAI_AutoUpdate>Tarkista päivitykset automaattisesti:</RWAI_AutoUpdate><RWAI_Online>AI-palvelin verkossa</RWAI_Online><RWAI_Busy>AI-palvelin on varattu.</RWAI_Busy><RWAI_Error>AI-palvelinvirhe</RWAI_Error><RWAI_Offline>AI-palvelin offline-tilassa</RWAI_Offline><RWAI_Reset>Tämä yrittää korjata ongelmat poistamalla ja lataamalla AI-tiedostot uudelleen.</RWAI_Reset></LanguageData>
+Mukavia tarinankerrontahetkiä ja menestystä siirtokunnallesi!</RWAI_Welcome><RWAI_AutoUpdate>Tarkista päivitykset automaattisesti:</RWAI_AutoUpdate><RWAI_Online>AI-palvelin verkossa</RWAI_Online><RWAI_Busy>AI-palvelin varattu</RWAI_Busy><RWAI_Error>AI-palvelinvirhe</RWAI_Error><RWAI_Offline>AI-palvelin offline-tilassa</RWAI_Offline><RWAI_Reset>Tämä yrittää korjata ongelmat poistamalla ja lataamalla AI-tiedostot uudelleen.</RWAI_Reset><RWAI_ModelSize>AI-koko:</RWAI_ModelSize><RWAI_ModelMedium>Keskikokoinen (8 Gt)</RWAI_ModelMedium><RWAI_ModelSmall>Pieni (4 Gt)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2GB)</RWAI_ModelMini><RWAI_ModelCustom>Mukautettu (Edistynyt)</RWAI_ModelCustom></LanguageData>

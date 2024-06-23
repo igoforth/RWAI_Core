@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>RimWorldAIへようこそ！
 
-モッドをダウンロードしましたので、次にAIを起動しましょう！「続行」をクリックすると、必要なAIファイルがバックグラウンドでダウンロードされます。ファイルのサイズは2～8GBのため、少々時間がかかるかもしれません。ご理解いただきありがとうございます！
+モッドをダウンロードしていただきありがとうございます。次に、AIを起動してみましょう！「続ける」をクリックすると、必要なAIファイルがバックグラウンドでダウンロードされます。AIのサイズによっては2〜8GBかかるため、少々お時間をいただく場合があります。ご理解とご協力に感謝します！
 
-セットアップが完了すると、RimWorldAIは完全にオフラインで動作します。自動更新を無効にすると、インターネット接続は不要になり、AIとのやり取りはあなたのコロニーの秘密同様にプライベートになります！
+セットアップが完了すると、RimWorldAIは完全にオフラインで動作することができます。自動更新を無効にすると、インターネット接続は不要になり、AIとのやり取りがあなたのコロニーの秘密と同じようにプライベートに保たれます！
 
-自分のペースでアップデートを確認したいですか？設定に移動し、いつでも手動で確認できます。
+自分のペースで更新を確認したいですか？設定に移動して、好きな時に手動でチェックしてください。
 
-自動更新を有効にして、AIを最新の状態に保ち、最高の機能を享受し続けましょう。
+自動更新を有効にして、常に最新で最高の機能を備えたAIを簡単に保ちましょう。
 
-楽しいストーリーテリングを、そしてコロニーの繁栄を願っています！</RWAI_Welcome><RWAI_AutoUpdate>自動的に更新をチェックする</RWAI_AutoUpdate><RWAI_Online>AIサーバーオンライン</RWAI_Online><RWAI_Busy>AIサーバーが忙しい</RWAI_Busy><RWAI_Error>AI サーバーエラー</RWAI_Error><RWAI_Offline>AIサーバーオフライン</RWAI_Offline><RWAI_Reset>これは、AIファイルの削除と再ダウンロードによって問題の修正を試みます。</RWAI_Reset></LanguageData>
+ストーリーテリングを楽しみ、あなたのコロニーが繁栄しますように！</RWAI_Welcome><RWAI_AutoUpdate>自動的に更新を確認:</RWAI_AutoUpdate><RWAI_Online>AIサーバーオンライン</RWAI_Online><RWAI_Busy>AIサーバーがビジー状態です。</RWAI_Busy><RWAI_Error>AIサーバーエラー</RWAI_Error><RWAI_Offline>AIサーバーがオフラインです</RWAI_Offline><RWAI_Reset>これにより、AIファイルを削除して再ダウンロードすることで問題の修正を試みます。</RWAI_Reset><RWAI_ModelSize>AIサイズ:</RWAI_ModelSize><RWAI_ModelMedium>ミディアム（8GB）</RWAI_ModelMedium><RWAI_ModelSmall>小 (4GB)</RWAI_ModelSmall><RWAI_ModelMini>ミニ（2GB）</RWAI_ModelMini><RWAI_ModelCustom>カスタム（高度）</RWAI_ModelCustom></LanguageData>

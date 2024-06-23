@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>Willkommen bei RimWorldAI!
 
-Sie haben das Mod heruntergeladen, jetzt bringen wir die KI zum Laufen! "Fortfahren" wird die notwendigen KI-Dateien im Hintergrund herunterladen. Dies könnte einige Zeit in Anspruch nehmen, da die Dateien zwischen 2 und 8 GB groß sind - danke für Ihre Geduld!
+Du hast den Mod heruntergeladen, jetzt lass uns die KI zum Laufen bringen! Mit "Fortsetzen" werden die notwendigen KI-Dateien im Hintergrund heruntergeladen. Dies kann eine Weile dauern, da die KI, je nach ausgewählter Größe, zwischen 2 und 8 GB groß ist - danke für deine Geduld!
 
-Sobald das Setup abgeschlossen ist, kann RimWorldAI vollständig offline betrieben werden. Wenn Sie automatische Updates deaktivieren, ist keine Internetverbindung erforderlich, wodurch Ihre KI-Interaktionen ebenso privat bleiben wie die Geheimnisse Ihrer Kolonie!
+Einmal eingerichtet, kann RimWorldAI vollständig offline betrieben werden. Wenn du automatische Updates deaktivierst, ist keine Internetverbindung erforderlich, wodurch deine KI-Interaktionen so privat wie deine Koloniegeheimnisse bleiben!
 
-Möchten Sie Updates lieber nach Ihrem eigenen Zeitplan prüfen? Gehen Sie einfach zu den Einstellungen, um manuell zu prüfen, wann Sie möchten.
+Bevorzugst du es, Updates nach deinem eigenen Zeitplan zu überprüfen? Gehe einfach zu den Einstellungen, um manuell zu überprüfen, wann immer du möchtest.
 
-Aktivieren Sie automatische Updates, um Ihre KI mühelos in bester Form zu halten und sicherzustellen, dass Sie stets über die neuesten Funktionen verfügen.
+Aktiviere automatische Updates, um deine KI mühelos in einwandfreiem Zustand zu halten und sicherzustellen, dass du stets die besten und neuesten Funktionen hast.
 
-Viel Spaß beim Erzählen von Geschichten und möge Ihre Kolonie gedeihen!</RWAI_Welcome><RWAI_AutoUpdate>Automatisch nach Updates suchen:</RWAI_AutoUpdate><RWAI_Online>KI-Server online.</RWAI_Online><RWAI_Busy>KI-Server beschäftigt</RWAI_Busy><RWAI_Error>AI-Serverfehler</RWAI_Error><RWAI_Offline>AI-Server offline.</RWAI_Offline><RWAI_Reset>Dies wird versuchen, Probleme zu beheben, indem die KI-Dateien gelöscht und erneut heruntergeladen werden.</RWAI_Reset></LanguageData>
+Viel Spaß beim Erzählen deiner Geschichten und möge deine Kolonie gedeihen!</RWAI_Welcome><RWAI_AutoUpdate>Automatisch nach Updates suchen:</RWAI_AutoUpdate><RWAI_Online>KI-Server Online</RWAI_Online><RWAI_Busy>KI-Server beschäftigt</RWAI_Busy><RWAI_Error>AI-Serverfehler</RWAI_Error><RWAI_Offline>AI-Server offline</RWAI_Offline><RWAI_Reset>Dabei wird versucht, Probleme zu beheben, indem die AI-Dateien gelöscht und erneut heruntergeladen werden.</RWAI_Reset><RWAI_ModelSize>KI-Größe:</RWAI_ModelSize><RWAI_ModelMedium>Mittel (8 GB)</RWAI_ModelMedium><RWAI_ModelSmall>Klein (4 GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2GB)</RWAI_ModelMini><RWAI_ModelCustom>Benutzerdefiniert (Erweitert)</RWAI_ModelCustom></LanguageData>

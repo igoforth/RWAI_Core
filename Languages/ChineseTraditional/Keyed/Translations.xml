@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>歡迎來到 RimWorldAI！
 
-你已經下載了這個模組，現在讓我們啟動 AI！點擊“繼續”將在背景中下載必要的 AI 文件。由於這些文件大小在 2 到 8 GB 之間，因此可能需要一些時間，感謝你的耐心等候！
+您已下載模組，現在讓我們開始運行AI！點擊「繼續」以在背景下載必要的AI文件。根據所選AI大小的不同，這可能需要一些時間，因為AI的大小在2到8 GB之間——感謝您的耐心等待！
 
-一旦設置完成，RimWorldAI 可以完全離線運行。如果你禁用自動更新，則不需要網絡連接，這樣可以使你的 AI 互動像你的殖民地秘密一樣保持私密！
+設置完成後，RimWorldAI可以完全離線運行。如果您禁用自動更新，不需要任何網絡連接，這將使您的AI交互與您的殖民地秘密一樣私密！
 
-更喜歡按自己的時間表檢查更新？只需前往設置，隨時手動檢查。
+想在自己的時間安排內檢查更新？只需前往設置，隨時手動檢查。
 
-啟用自動更新，可以輕鬆保持你的 AI 處於最佳狀態，確保你始終擁有最新和最好的功能。
+啟用自動更新，以輕鬆保持您的AI在最佳狀態，確保您始終擁有最新和最佳的功能。
 
-祝你講述愉快的故事，願你的殖民地繁榮昌盛！</RWAI_Welcome><RWAI_AutoUpdate>自動檢查更新：</RWAI_AutoUpdate><RWAI_Online>人工智慧伺服器上線</RWAI_Online><RWAI_Busy>AI伺服器忙碌中</RWAI_Busy><RWAI_Error>人工智能伺服器錯誤</RWAI_Error><RWAI_Offline>伺服器離線</RWAI_Offline><RWAI_Reset>這將嘗試通過刪除並重新下載 AI 文件來修復問題。</RWAI_Reset></LanguageData>
+祝您講故事愉快，願您的殖民地繁榮昌盛！</RWAI_Welcome><RWAI_AutoUpdate>自動檢查更新：</RWAI_AutoUpdate><RWAI_Online>AI伺服器在線</RWAI_Online><RWAI_Busy>AI 伺服器繁忙</RWAI_Busy><RWAI_Error>AI 伺服器錯誤</RWAI_Error><RWAI_Offline>人工智慧伺服器離線</RWAI_Offline><RWAI_Reset>此操作將嘗試通過刪除並重新下載AI文件來修復問題。</RWAI_Reset><RWAI_ModelSize>人工智慧大小：</RWAI_ModelSize><RWAI_ModelMedium>中等 (8GB)</RWAI_ModelMedium><RWAI_ModelSmall>小 (4GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini（2GB）</RWAI_ModelMini><RWAI_ModelCustom>自定義（高級）</RWAI_ModelCustom></LanguageData>

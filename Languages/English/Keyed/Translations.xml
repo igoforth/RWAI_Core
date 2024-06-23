@@ -3,7 +3,7 @@
 
     <RWAI_Welcome>Welcome to RimWorldAI!
 
-You've downloaded the mod, now let's get the AI up and running! &quot;Continue&quot; will download the necessary AI files in the background. This might take a little while as the files are between 2 to 8 GB - thanks for your patience!
+You've downloaded the mod, now let's get the AI up and running! &quot;Continue&quot; will download the necessary AI files in the background. This might take a little while as the AI, depending on selected size, is between 2 to 8 GB - thanks for your patience!
 
 Once set up, RimWorldAI can run entirely offline. If you disable automatic updates, no internet connection is needed, keeping your AI interactions as private as your colony secrets!
 
@@ -15,10 +15,17 @@ Happy storytelling and may your colony thrive!</RWAI_Welcome>
 
     <RWAI_AutoUpdate>Check for Updates Automatically:</RWAI_AutoUpdate>
 
+    <RWAI_ModelSize>AI Size:</RWAI_ModelSize>
+    <RWAI_ModelMedium>Medium (8GB)</RWAI_ModelMedium>
+    <RWAI_ModelSmall>Small (4GB)</RWAI_ModelSmall>
+    <RWAI_ModelMini>Mini (2GB)</RWAI_ModelMini>
+    <RWAI_ModelCustom>Custom (Advanced)</RWAI_ModelCustom>
+
     <RWAI_Online>AI Server Online</RWAI_Online>
     <RWAI_Busy>AI Server Busy</RWAI_Busy>
     <RWAI_Error>AI Server Error</RWAI_Error>
     <RWAI_Offline>AI Server Offline</RWAI_Offline>
+
     <RWAI_Reset>This will attempt to fix issues by deleting and redownloading the AI files.</RWAI_Reset>
 
 </LanguageData>

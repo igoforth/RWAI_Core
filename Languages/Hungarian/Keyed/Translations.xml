@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
-<LanguageData><RWAI_Welcome>Üdvözlünk a RimWorldAI-ban!
+<LanguageData><RWAI_Welcome>Üdvözöllek a RimWorldAI-ban!
 
-Letöltötted a modot, most indítsuk el az AI-t! A "Folytatás" letölti a szükséges AI fájlokat a háttérben. Ez eltarthat egy ideig, mivel a fájlok mérete 2 és 8 GB között mozog - köszönjük a türelmedet!
+Letöltötted a modot, most indítsuk el az AI-t! A „Folytatás” letölti a szükséges AI fájlokat a háttérben. Ez egy kis időt vehet igénybe, mivel az AI mérete a kiválasztott mérettől függően 2 és 8 GB között van - köszönjük türelmedet!
 
-Miután a beállítások elkészültek, a RimWorldAI teljesen offline is futtatható. Ha letiltod az automatikus frissítéseket, nincs szükség internetkapcsolatra, így az AI-val való interakcióid ugyanolyan privátak maradnak, mint a kolóniád titkai!
+Miután beállítottad, a RimWorldAI teljesen offline módban is futtatható. Ha kikapcsolod az automatikus frissítéseket, nincs szükség internetkapcsolatra, így a AI-val való interakcióid olyan privátak maradnak, mint a kolóniád titkai!
 
-Inkább saját ütemedben ellenőriznéd a frissítéseket? Egyszerűen lépj be a beállításokba, hogy manuálisan ellenőrizhesd, amikor csak szeretnéd.
+Inkább saját időbeosztásod szerint frissítenél? Egyszerűen menj a beállításokba, hogy manuálisan ellenőrizd, amikor csak szeretnéd.
 
-Engedélyezd az automatikus frissítéseket, hogy AI-d mindig kiváló állapotban maradjon, így mindig a legjobb és legújabb funkciók állnak rendelkezésedre.
+Engedélyezd az automatikus frissítéseket, hogy erőfeszítés nélkül tartsd AI-dat kiváló állapotban, biztosítva, hogy mindig a legjobb és legújabb funkciókkal rendelkezz.
 
-Boldog történetmesélést és sok sikert a kolóniádnak!</RWAI_Welcome><RWAI_AutoUpdate>Frissítések automatikus keresése:</RWAI_AutoUpdate><RWAI_Online>AI szerver online</RWAI_Online><RWAI_Busy>AI kiszolgáló foglalt.</RWAI_Busy><RWAI_Error>AI szerverhiba</RWAI_Error><RWAI_Offline>AI szerver offline</RWAI_Offline><RWAI_Reset>Ez megpróbálja kijavítani a problémákat az AI fájlok törlésével és újraletöltésével.</RWAI_Reset></LanguageData>
+Boldog történetmesélést és virágzó kolóniát!</RWAI_Welcome><RWAI_AutoUpdate>Automatikus frissítések keresése:</RWAI_AutoUpdate><RWAI_Online>AI szerver online</RWAI_Online><RWAI_Busy>AI szerver foglalt</RWAI_Busy><RWAI_Error>Mesterséges intelligencia szerverhiba</RWAI_Error><RWAI_Offline>AI Szerver Nem Elérhető</RWAI_Offline><RWAI_Reset>Ez megpróbálja kijavítani a problémákat azáltal, hogy törli és újratölti az AI fájlokat.</RWAI_Reset><RWAI_ModelSize>AI méret:</RWAI_ModelSize><RWAI_ModelMedium>Közepes (8 GB)</RWAI_ModelMedium><RWAI_ModelSmall>Kicsi (4 GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2 GB)</RWAI_ModelMini><RWAI_ModelCustom>Egyedi (Haladó)</RWAI_ModelCustom></LanguageData>

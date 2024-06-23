@@ -26,6 +26,9 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
 {
     public static bool ShowWelcome => showWelcome;
     private static bool autoUpdate = AICoreMod.Settings != null && AICoreMod.Settings.AutoUpdateCheck;
+    private static AICoreSettings.ModelSize activeModelSize = AICoreMod.Settings != null ? AICoreMod.Settings.ActiveModelSize : AICoreSettings.ModelSize.MINI;
+    private static Dictionary<AICoreSettings.ModelSize, (string name, int size)> availableModelSizes;
+    private static SupportedLanguage activeLanguage = UpdateLanguage.activeLanguage;
     private static bool showWelcome;
     private static bool userOverride; // one-time decision per session if !isConfigured
     private static Texture2D Banner;
@@ -33,6 +36,7 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
     static MainMenuDrawer_MainMenuOnGUI_Patch()
     {
         LoadBanner(out Banner);
+        GetModelSizes(out availableModelSizes);
     }
     public static void Postfix()
     {
@@ -52,6 +56,12 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
         else LogTool.Error("Banner image not found at: " + bannerPath);
     }
 
+    private static void GetModelSizes(out Dictionary<AICoreSettings.ModelSize, (string name, int size)> availableModelSizes)
+    {
+        availableModelSizes = AICoreSettings.AvailableModelSizes;
+        AICoreSettings.UpdateAvailableModelSizes(ref availableModelSizes);
+    }
+
     public static int DownscaleBanner(int targetWidth)
     {
         var scaleDivisor = (double)(Banner.width / targetWidth);
@@ -61,16 +71,25 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
 
     public static void Welcome()
     {
-        if (userOverride) return;
-        if (AICoreMod.Settings == null) return;
         if (AICoreMod.self == null) return;
+        if (AICoreMod.Settings == null) return;
+        if (activeModelSize != AICoreMod.Settings.ActiveModelSize) userOverride = false;
+        if (userOverride) return;
         // only show the welcome message if required files are missing or corrupted
-        showWelcome = BootstrapTool.isConfigured == false;
+        showWelcome = !BootstrapTool.IsConfigured;
         if (!showWelcome) return;
+
+        // update any needed fields
+        if (activeLanguage != UpdateLanguage.activeLanguage)
+        {
+            activeLanguage = UpdateLanguage.activeLanguage;
+            AICoreSettings.UpdateAvailableModelSizes(ref availableModelSizes);
+        }
+        // availableModelSizes = AICoreSettings.AvailableModelSizes;
 
         var background = new Color(0f, 0f, 0f, 0.8f);
         var screen = new Vector2(UI.screenWidth, UI.screenHeight);
-        var dialogSize = new Vector2(540, 540);
+        var dialogSize = new Vector2(540, 630);
         var rect = new Rect((screen.x - dialogSize.x) / 2, (screen.y - dialogSize.y) / 2, dialogSize.x, dialogSize.y);
         var welcome = "RWAI_Welcome".Translate();
 
@@ -96,9 +115,34 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
         Text.Anchor = TextAnchor.UpperLeft;
         Widgets.Label(rect.ExpandedBy(-20, -30), welcome);
 
+        var listing = new Listing_Standard();
+
         // Checkbox for automatic updates
-        var checkboxRect = new Rect(rect.x + 20, rect.yMax - 80, rect.width - 40, 24);
-        Widgets.CheckboxLabeled(checkboxRect, "RWAI_AutoUpdate".Translate(), ref autoUpdate);
+        var listingRect = new Rect(rect.x + 20, rect.yMax - 120, rect.width - 40, 80);
+        listing.Begin(listingRect);
+        listing.CheckboxLabeled("RWAI_AutoUpdate".Translate(), ref autoUpdate);
+
+        listing.Gap(4);
+
+        // Dropdown for AI Size
+        if (listing.ButtonTextLabeledPct("RWAI_ModelSize".Translate(), availableModelSizes.TryGetValue(activeModelSize).name, 0.8f, TextAnchor.MiddleLeft, null, null, null))
+        {
+            List<FloatMenuOption> options = [];
+            foreach (AICoreSettings.ModelSize size in AICoreSettings.ModelSizeOrder)
+            {
+                if (availableModelSizes.TryGetValue(size, out (string name, int vram) value))  // Check if the size is actually in the dictionary
+                {
+                    var (name, vram) = value;
+                    options.Add(new FloatMenuOption(("RWAI_Model" + name).Translate(), delegate
+                    {
+                        activeModelSize = size;
+                    }, MenuOptionPriority.Default, null, null, 0f, null, null, true, 0));
+                }
+            }
+            Find.WindowStack.Add(new FloatMenu(options));
+        }
+
+        listing.End();
 
         // Buttons for Continue and Cancel
         var buttonWidth = 80;
@@ -125,6 +169,7 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
             // when Continue is pressed, Enabled is set to true
 
             AICoreMod.Settings.AutoUpdateCheck = autoUpdate;
+            AICoreMod.Settings.ActiveModelSize = activeModelSize;
             AICoreMod.Settings.Enabled = true;
             AICoreMod.Settings.Write();
 
@@ -139,6 +184,7 @@ public static class MainMenuDrawer_MainMenuOnGUI_Patch
             AICoreMod.Settings.Write();
 
             // Dismiss dialog
+            activeModelSize = AICoreMod.Settings.ActiveModelSize;
             userOverride = true;
         }
 
@@ -427,8 +473,7 @@ public static partial class GenerallTimeUpdates_Patch
         {
             { "ServerStatus", new UpdateTaskTime(() => 2.0f, UpdateServerStatus.Task, false) },
             { "MonitorJobs", new UpdateTaskTime(() => 5.0f, MonitorJobStatus.Task, false) },
-            // { "RefreshExpansions", new UpdateTaskTime(() => 60.0f, RefreshExpansions.Task, false) },
-            // { "BakeImages", new UpdateTaskTime(() => 5.0f, BakeImages.Task, false) }
+            { "UpdateLanguage", new UpdateTaskTime(() => 5.0f, UpdateLanguage.Task, false) },
         };
 
     public static void Postfix()

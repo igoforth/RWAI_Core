@@ -72,6 +72,7 @@
         <PackageReference Include="Lib.Harmony" Version="2.3.3" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.NETCore.Platforms" Version="7.0.4" />
         <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
+        <PackageReference Include="NuGet.Versioning" Version="6.10.0" />
         <PackageReference Include="PolySharp"
             Version="1.14.1+a7a92a9ddd050275c91c42b711d22cb41c3fbf3d" />
     </ItemGroup>

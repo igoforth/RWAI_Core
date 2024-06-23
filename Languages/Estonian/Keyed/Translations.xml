@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LanguageData><RWAI_Welcome>Tere tulemast RimWorldAI-sse!
 
-Oled alla laadinud mooduli, nüüd laseme AI-l tööle hakata! "Jätka" laadib taustal alla vajalikud AI-failid. See võib veidi aega võtta, kuna failid on 2 kuni 8 GB suurused - tänan kannatlikkuse eest!
+Olete alla laadinud mooduli, nüüd laseme AI käivitada! "Jätka" laadib vajalikud AI failid taustal alla. See võib natuke aega võtta, kuna AI suurus on valitud suuruse põhjal 2 kuni 8 GB - tänud kannatlikkuse eest!
 
-Pärast seadistamist võib RimWorldAI töötada täielikult võrguühenduseta. Kui keelate automaatsed värskendused, pole internetiühendust vaja ja teie AI-suhtlus jääb sama privaatseks kui teie koloonia saladused!
+Kui seadistus on valmis, saab RimWorldAI töötada täielikult võrguühenduseta. Kui keelata automaatsed värskendused, pole internetiühendust vaja, hoides teie AI suhtluse sama privaatseks kui teie koloonia saladused!
 
-Eelistate uuendusi kontrollida oma ajakava järgi? Lihtsalt minge seadistustesse, et käsitsi kontrollida, millal soovite.
+Eelistate värskendusi kontrollida oma graafiku järgi? Lihtsalt minge seadetesse, et käsitsi kontrollida, millal soovite.
 
-Lubage automaatsed värskendused, et hoida oma AI alati tippvormis, tagades, et teil on alati parimad ja uusimad funktsioonid.
+Lubage automaatsed värskendused, et hoida oma AI probleemideta töökorras, tagades, et teil on alati parimad ja uusimad funktsioonid.
 
-Head lugude jutustamist ja las teie koloonia õitseb!</RWAI_Welcome><RWAI_AutoUpdate>Kontrolli värskendusi automaatselt:</RWAI_AutoUpdate><RWAI_Online>AI-server võrgus</RWAI_Online><RWAI_Busy>AI-server hõivatud</RWAI_Busy><RWAI_Error>AI serveri viga</RWAI_Error><RWAI_Offline>AI-server on võrguühenduseta</RWAI_Offline><RWAI_Reset>See püüab probleeme lahendada AI-failide kustutamise ja uuesti allalaadimise teel.</RWAI_Reset></LanguageData>
+Head lugude jutustamist ja las teie koloonia õitseb!</RWAI_Welcome><RWAI_AutoUpdate>Kontrolli värskendusi automaatselt:</RWAI_AutoUpdate><RWAI_Online>Tehisintellekti server on veebis</RWAI_Online><RWAI_Busy>AI server on hõivatud</RWAI_Busy><RWAI_Error>AI serveri viga</RWAI_Error><RWAI_Offline>AI server on ühenduseta</RWAI_Offline><RWAI_Reset>See üritab probleeme lahendada AI-failide kustutamise ja uuesti allalaadimise teel.</RWAI_Reset><RWAI_ModelSize>Tehisintellekti suurus:</RWAI_ModelSize><RWAI_ModelMedium>Keskmine (8 GB)</RWAI_ModelMedium><RWAI_ModelSmall>Väike (4GB)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2 GB)</RWAI_ModelMini><RWAI_ModelCustom>Kohandatud (Täpsem)</RWAI_ModelCustom></LanguageData>

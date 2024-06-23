@@ -5,6 +5,7 @@
 //
 using System.Diagnostics;
 using System.Text;
+using NuGet.Versioning;
 using Verse;
 
 namespace AICore;
@@ -82,7 +83,7 @@ public class ServerManager : IDisposable
         currentServerStatusEnum = status;
         currentServerStatus = ("RWAI_" + status.ToString()).Translate();
         if (currentServerStatusEnum == ServerStatus.Busy)
-            currentServerStatus += $" {BootstrapTool.percentComplete}%";
+            currentServerStatus += $" {BootstrapTool.PercentComplete}%";
     }
 
     private static void StartProcess(CancellationToken token)
@@ -93,6 +94,13 @@ public class ServerManager : IDisposable
         var shellArgs = "bin/python AIServer.pyz --loglevel DEBUG";
 #else
         var shellArgs = "bin/python AIServer.pyz --loglevel INFO";
+#endif
+        if (BootstrapTool.ServerVersion > SemanticVersion.Parse("0.2.0-alpha"))
+        {
+            shellArgs += $" --modelsize {AICoreMod.Settings!.ActiveModelSize}";
+        }
+#if DEBUG
+        LogTool.Debug($"Server args: {shellArgs}");
 #endif
         var modPath = Path.Combine(
             Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(),
@@ -138,17 +146,21 @@ public class ServerManager : IDisposable
                 serverProcess.Exited += (sender, e) =>
                 {
                     if (serverProcess == null) return;
+                    lock (lockObject)
+                    {
+                        if (!serverProcess.HasExited) return;
 #if DEBUG
-                    var elapsedTime = Math.Round(
-                        (serverProcess.ExitTime - serverProcess.StartTime).TotalMilliseconds
-                    );
-                    LogTool.Debug($"Exit time    : {serverProcess.ExitTime}");
-                    LogTool.Debug($"Exit code    : {serverProcess.ExitCode}");
-                    LogTool.Debug($"Elapsed time : {elapsedTime}");
+                        var elapsedTime = Math.Round(
+                            (serverProcess.ExitTime - serverProcess.StartTime).TotalMilliseconds
+                        );
+                        LogTool.Debug($"Exit time    : {serverProcess.ExitTime}");
+                        LogTool.Debug($"Exit code    : {serverProcess.ExitCode}");
+                        LogTool.Debug($"Elapsed time : {elapsedTime}");
 #endif
-                    if (serverProcess.ExitCode != 0) LogTool.Warning($"AI Server exited with non-zero code: {serverProcess.ExitCode}");
-                    else LogTool.Message("AI Server shutdown.");
-                    UpdateServerStatus(ServerStatus.Offline);
+                        if (serverProcess.ExitCode != 0) LogTool.Warning($"AI Server exited with non-zero code: {serverProcess.ExitCode}");
+                        else LogTool.Message("AI Server shutdown.");
+                        UpdateServerStatus(ServerStatus.Offline);
+                    }
                 };
 
                 serverProcess.ErrorDataReceived += (sender, args) =>

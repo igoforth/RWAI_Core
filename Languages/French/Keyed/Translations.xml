@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
-<LanguageData><RWAI_Welcome>Bienvenue sur RimWorldAI !
+<LanguageData><RWAI_Welcome>Bienvenue chez RimWorldAI !
 
-Vous avez téléchargé le mod, maintenant allons faire fonctionner l'IA ! "Continuer" téléchargera les fichiers nécessaires en arrière-plan. Cela peut prendre un peu de temps car les fichiers pèsent entre 2 et 8 Go - merci pour votre patience !
+Vous avez téléchargé le mod, maintenant faisons fonctionner l'IA ! "Continuer" téléchargera les fichiers nécessaires de l'IA en arrière-plan. Cela peut prendre un certain temps, car l'IA, selon la taille sélectionnée, pèse entre 2 et 8 Go - merci de votre patience !
 
 Une fois configuré, RimWorldAI peut fonctionner entièrement hors ligne. Si vous désactivez les mises à jour automatiques, aucune connexion Internet n'est nécessaire, gardant vos interactions avec l'IA aussi privées que les secrets de votre colonie !
 
-Vous préférez vérifier les mises à jour à votre propre rythme ? Allez simplement dans les paramètres pour vérifier manuellement quand vous le souhaitez.
+Vous préférez vérifier les mises à jour selon votre propre calendrier ? Rendez-vous simplement dans les paramètres pour vérifier manuellement quand vous le souhaitez.
 
-Activez les mises à jour automatiques pour garder facilement votre IA à jour, en vous assurant de toujours bénéficier des meilleures et dernières fonctionnalités.
+Activez les mises à jour automatiques pour maintenir sans effort votre IA en parfait état, en vous assurant que vous avez toujours les meilleures et les dernières fonctionnalités.
 
-Bon storytelling et que votre colonie prospère !</RWAI_Welcome><RWAI_AutoUpdate>Vérifier les mises à jour automatiquement :</RWAI_AutoUpdate><RWAI_Online>Serveur IA en ligne</RWAI_Online><RWAI_Busy>Serveur IA occupé</RWAI_Busy><RWAI_Error>Erreur du serveur d'IA</RWAI_Error><RWAI_Offline>Serveur IA hors ligne</RWAI_Offline><RWAI_Reset>Cela tentera de résoudre les problèmes en supprimant et en retéléchargeant les fichiers d'IA.</RWAI_Reset></LanguageData>
+Bonne narration et que votre colonie prospère !</RWAI_Welcome><RWAI_AutoUpdate>Vérifier automatiquement les mises à jour :</RWAI_AutoUpdate><RWAI_Online>Serveur IA en ligne</RWAI_Online><RWAI_Busy>Serveur AI occupé</RWAI_Busy><RWAI_Error>Erreur du serveur d'IA</RWAI_Error><RWAI_Offline>Serveur IA hors ligne</RWAI_Offline><RWAI_Reset>Cela tentera de résoudre les problèmes en supprimant et en retéléchargeant les fichiers d'IA.</RWAI_Reset><RWAI_ModelSize>Taille de l'IA :</RWAI_ModelSize><RWAI_ModelMedium>Moyen (8 Go)</RWAI_ModelMedium><RWAI_ModelSmall>Petit (4 Go)</RWAI_ModelSmall><RWAI_ModelMini>Mini (2 Go)</RWAI_ModelMini><RWAI_ModelCustom>Personnalisé (Avancé)</RWAI_ModelCustom></LanguageData>
