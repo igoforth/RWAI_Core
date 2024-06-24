@@ -438,8 +438,6 @@ public static class BootstrapTool // : IDisposable
         if (token.IsCancellationRequested) return;
         if (!update && isConfigured == true)
         {
-            LogTool.Message($"You are running version {version}");
-            serverVersion = version;
             ServerManager.UpdateRunningState(AICoreMod.Settings!.Enabled);
             await AICoreMod.Client.UpdateRunningStateAsync(AICoreMod.Settings!.Enabled).ConfigureAwait(false);
             return;
