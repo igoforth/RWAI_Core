@@ -219,6 +219,7 @@ public static class BootstrapTool // : IDisposable
                 return false; // If any file is below the size threshold, return false
         }
 
+        LogTool.Message($"You are running version {serverVersion}");
         return true; // All checks passed
     }
 
