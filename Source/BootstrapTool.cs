@@ -107,19 +107,28 @@ public static class BootstrapTool // : IDisposable
         isConfigured = CheckConfigured();
     }
 
-    // check for internet access
+
+    // Check for internet access
     public static bool CheckInternet()
     {
-        try
+        // Google DNS and Alibaba Cloud DNS
+        string[] dnsAddresses = new string[] { "8.8.8.8", "100.100.2.136" };
+
+        using var pingSender = new System.Net.NetworkInformation.Ping();
+        foreach (var address in dnsAddresses)
         {
-            using var pingSender = new System.Net.NetworkInformation.Ping();
-            var pingReply = pingSender.Send("dns.google");
-            if (pingReply.Status == IPStatus.Success) return true;
+            try
+            {
+                var pingReply = pingSender.Send(address);
+                if (pingReply.Status == System.Net.NetworkInformation.IPStatus.Success)
+                    return true;
+            }
+            catch (PingException)
+            {
+                // Continue to the next address
+            }
         }
-        catch (PingException)
-        {
-            return false;
-        }
+
         return false;
     }
 
