@@ -473,7 +473,7 @@ public static partial class GenerallTimeUpdates_Patch
         {
             { "ServerStatus", new UpdateTaskTime(() => 2.0f, UpdateServerStatus.Task, false) },
             { "MonitorJobs", new UpdateTaskTime(() => 5.0f, MonitorJobStatus.Task, false) },
-            { "UpdateLanguage", new UpdateTaskTime(() => 5.0f, UpdateLanguage.Task, false) },
+            { "UpdateLanguage", new UpdateTaskTime(() => 5.0f, UpdateLanguage.Task, true) },
         };
 
     public static void Postfix()

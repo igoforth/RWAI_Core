@@ -88,6 +88,7 @@ public static class BootstrapTool // : IDisposable
         );
         if (!Directory.Exists(modPath)) _ = Directory.CreateDirectory(modPath);
 
+
         // bin paths
         shellBin = platform == OSPlatform.Windows ? "powershell.exe" : "sh";
         pythonPath = Path.Combine(
@@ -181,6 +182,9 @@ public static class BootstrapTool // : IDisposable
         foreach (var filePath in filePathList)
             if (!File.Exists(filePath))
                 return false;
+
+        // Get current version
+        serverVersion = ParseVersion(File.ReadAllText(Path.Combine(modPath, ".version")));
 
         // Get model size details from settings
         var modelsPath = Path.Combine(modPath, "models");
@@ -387,7 +391,7 @@ public static class BootstrapTool // : IDisposable
         // Verify that the file exists before attempting to open it
         if (!File.Exists(playerLogPath))
         {
-            Console.WriteLine("Player log file does not exist: " + playerLogPath);
+            LogTool.Error("Player log file does not exist: " + playerLogPath);
             return 0; // Return 0 if the file doesn't exist
         }
 
@@ -435,16 +439,13 @@ public static class BootstrapTool // : IDisposable
         {
             LogTool.Message($"You are running version {version}");
             serverVersion = version;
-            if (AICoreMod.Settings!.Enabled && (isConfigured = CheckConfigured()) == true)
-            {
-                ServerManager.UpdateRunningState(AICoreMod.Settings.Enabled);
-                await AICoreMod.Client.UpdateRunningStateAsync(AICoreMod.Settings.Enabled).ConfigureAwait(false);
-            }
+            ServerManager.UpdateRunningState(AICoreMod.Settings!.Enabled);
+            await AICoreMod.Client.UpdateRunningStateAsync(AICoreMod.Settings!.Enabled).ConfigureAwait(false);
             return;
         }
         else
         {
-            if (version == ParseVersion("0.0.0")) LogTool.Message("RWAI files haven't been found!");
+            if (version == null) LogTool.Message("RWAI files haven't been found!");
             else LogTool.Message($"RWAI has found a new version: {version}");
         }
 
@@ -500,16 +501,16 @@ public static class BootstrapTool // : IDisposable
     }
 
     // compare github api against pinned "./.version"
-    private static async Task<(bool shouldUpdate, SemanticVersion version)> CheckServerUpdateAsync()
+    private static async Task<(bool shouldUpdate, SemanticVersion? version)> CheckServerUpdateAsync()
     {
-        SemanticVersion oldVersion = ParseVersion("0.0.0");
+        SemanticVersion? oldVersion = null;
 
         try
         {
             // check for ".version" file
             var versionPath = Path.Combine(modPath, ".version");
             if (!File.Exists(versionPath)) return (true, oldVersion);
-            oldVersion = ParseVersion(File.ReadAllText(versionPath));
+            oldVersion = serverVersion ?? ParseVersion(File.ReadAllText(versionPath));
 
             // check for internet
             internetAccess = CheckInternet();
