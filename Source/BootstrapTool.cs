@@ -112,7 +112,7 @@ public static class BootstrapTool // : IDisposable
     public static bool CheckInternet()
     {
         // Google DNS and Alibaba Cloud DNS
-        string[] dnsAddresses = new string[] { "8.8.8.8", "100.100.2.136" };
+        string[] dnsAddresses = ["8.8.8.8", "100.100.2.136"];
 
         using var pingSender = new System.Net.NetworkInformation.Ping();
         foreach (var address in dnsAddresses)
