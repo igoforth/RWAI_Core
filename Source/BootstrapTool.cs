@@ -19,9 +19,9 @@ namespace AICore;
 //   Windows - %USERPROFILE%\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios\RWAI\
 //   Linux   - ~/.config/unity3d/Ludeon Studios/RimWorld by Ludeon Studios/RWAI/
 // files:
-// ./bin/curl (win curl.com)
-// ./bin/llamafile (win llamafile.com)
-// ./bin/python (win python.com)
+// ./bin/curl (win curl.exe)
+// ./bin/llamafile (win llamafile.exe)
+// ./bin/python (win python.exe)
 // ./models/Phi-3-mini-128k-instruct.Q4_K_M.gguf
 // ./AIServer.pyz
 // ./.version
@@ -54,7 +54,7 @@ public static class BootstrapTool // : IDisposable
         "https://api.github.com/repos/igoforth/RWAILib/releases/latest";
     private const string bootstrapString =
         "https://github.com/igoforth/RWAILib/releases/latest/download/bootstrap.py";
-    private const string pythonString = "https://cosmo.zip/pub/cosmos/bin/python";
+    private const string pythonString = "https://cosmo.zip/pub/cosmos/v/3.9.2/bin/python";
     private static AICoreSettings.ModelSize modelPreference = AICoreSettings.ModelSize.MINI;
     private static bool? isConfigured;
     private static SemanticVersion? serverVersion;
@@ -94,13 +94,13 @@ public static class BootstrapTool // : IDisposable
         pythonPath = Path.Combine(
             modPath,
             "bin",
-            platform == OSPlatform.Windows ? "python.com" : "python"
+            platform == OSPlatform.Windows ? "python.exe" : "python"
         );
         scriptPath = Path.Combine(modPath, "bootstrap.py");
         llamaPath = Path.Combine(
             modPath,
             "bin",
-            platform == OSPlatform.Windows ? "llamafile.com" : "llamafile"
+            platform == OSPlatform.Windows ? "llamafile.exe" : "llamafile"
         );
 
         // check if all files/folders are present
@@ -663,33 +663,61 @@ public static class BootstrapTool // : IDisposable
                     .ConfigureAwait(false);
     }
 
+    private static bool ExecuteCommand(string command, string arguments, string successMessage)
+    {
+        using (var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = command,
+                Arguments = arguments,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            }
+        })
+        {
+            process.Start();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
+                LogTool.Error($"Failed to execute command: {process.StandardError.ReadToEnd()}");
+                return false;
+            }
+#if DEBUG
+            LogTool.Debug(successMessage);
+#endif
+            return true;
+        }
+    }
+
+    private static bool PrepareExecutable(string executablePath)
+    {
+        if (shellBin == null) throw new ArgumentException("Shell path must be parsed before running commands!");
+        
+        if (platform == OSPlatform.Windows)
+        {
+            // Remove Mark of the Web
+            if (!ExecuteCommand(shellBin, $"Unblock-File -Path '{executablePath}'", $"Mark of the Web removed from {executablePath}"))
+                return false;
+
+            // Set integrity level
+            return ExecuteCommand(shellBin, $"icacls '{executablePath}' /setintegritylevel Medium", $"Integrity level set to Medium for {executablePath}");
+        }
+        else
+        {
+            // Make executable on Unix-like systems
+            return ExecuteCommand("chmod", $"+x \"{executablePath}\"", $"Made {executablePath} executable");
+        }
+    }
+
     private static bool PerformBootstrap(string pythonPath, string scriptContent, CancellationToken token)
     {
         try
         {
-            // If OS is not Windows, make python executable
-            if (platform != OSPlatform.Windows)
-            {
-                using (var chmodProcess = new Process
-                {
-                    StartInfo = {
-                    FileName = "chmod",
-                    Arguments = $"+x \"{pythonPath}\"",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-                })
-                {
-                    chmodProcess.Start();
-                    chmodProcess.WaitForExit();
-                    if (chmodProcess.ExitCode != 0)
-                    {
-                        ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Error);
-                        LogTool.Error("Failed to set executable permission on Python binary.");
-                        return false;
-                    }
-                }
-            }
+            PrepareExecutable(pythonPath);
 
             using (bootstrapProcess = new Process
             {
