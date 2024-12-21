@@ -1,9 +1,9 @@
+using System.Collections;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Versioning;
@@ -349,7 +349,9 @@ public static class BootstrapTool // : IDisposable
                 _ = Directory.CreateDirectory(dllLoadDir);
 
             // backup: copy lib into search path
-            // `Fallback handler could not load library %USERPROFILE%/scoop/apps/steam/current/steamapps/common/RimWorld/RimWorldWin64_Data/Mono/grpc_csharp_ext.dll`
+            // `Fallback handler could not load library`
+            // %USERPROFILE%/scoop/apps/steam/current/steamapps/common/RimWorld/RimWorldWin64_Data/Mono/grpc_csharp_ext.dll
+            // $HOME/snap/steam/common/.local/share/Steam/steamapps/common/RimWorld/Mono/grpc_csharp_ext.dll
             // Check if the destination file already exists
             if (!File.Exists(dstPath))
             {
@@ -391,53 +393,17 @@ public static class BootstrapTool // : IDisposable
         }
     }
 
-
     private static int GetVRAM()
     {
-        // Construct the full path to the Player.log file
-        var playerLogPath = Path.Combine(Directory.GetParent(GenFilePaths.ConfigFolderPath).ToStringSafe(), "Player.log");
-        string tempPath = Path.GetTempFileName(); // Creates a temporary file
-
-        // Verify that the file exists before attempting to open it
-        if (!File.Exists(playerLogPath))
-        {
-            LogTool.Error("Player log file does not exist: " + playerLogPath);
-            return 0; // Return 0 if the file doesn't exist
-        }
-
-        // Create a regex pattern to match VRAM information
-        var regex = new Regex(@"^\s+VRAM:\s+(\d+) MB$", RegexOptions.Multiline);
-
         try
         {
-            File.Copy(playerLogPath, tempPath, true); // Copy the original file to a temp file, overwriting it if it already exists
-            // Open the file with read access and allow other processes to read from it too
-            using (StreamReader reader = new(tempPath))
-            {
-                string line;
-                while ((line = reader.ReadLine()) != null) // Read line by line
-                {
-                    var match = regex.Match(line);
-                    if (match.Success)
-                    {
-                        // If a match is found, parse the VRAM value and return it
-                        return int.Parse(match.Groups[1].Value);
-                    }
-                }
-            }
+            return SystemInfo.graphicsMemorySize;  // Already returns in MB
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
-            // Log or handle the exception as needed
-            LogTool.Error("An error occurred while reading the VRAM from the log file: " + ex.Message);
+            LogTool.Error($"Error getting VRAM info: {ex.Message}");
+            return 0;
         }
-        finally
-        {
-            File.Delete(tempPath); // Clean up the temp file
-        }
-
-        // Return 0 if no VRAM information is found or if an error occurs
-        return 0;
     }
 
     private static async Task ManageBootstrapAsync(CancellationToken token)
@@ -696,7 +662,7 @@ public static class BootstrapTool // : IDisposable
     private static bool PrepareExecutable(string executablePath)
     {
         if (shellBin == null) throw new ArgumentException("Shell path must be parsed before running commands!");
-        
+
         if (platform == OSPlatform.Windows)
         {
             // Remove Mark of the Web
@@ -715,6 +681,8 @@ public static class BootstrapTool // : IDisposable
 
     private static bool PerformBootstrap(string pythonPath, string scriptContent, CancellationToken token)
     {
+        const int SHUTDOWN_TIMEOUT_MS = 1000; // 1 second
+
         try
         {
             PrepareExecutable(pythonPath);
@@ -724,7 +692,7 @@ public static class BootstrapTool // : IDisposable
                 EnableRaisingEvents = true,
                 StartInfo = {
                     FileName = shellBin,
-                    Arguments = $"bin/python -u bootstrap.py 2>&1",
+                    Arguments = $"bin/python -u bootstrap.py",
                     WorkingDirectory = modPath,
                     // RedirectStandardInput = false,
                     RedirectStandardOutput = true,
@@ -736,6 +704,18 @@ public static class BootstrapTool // : IDisposable
                 }
             })
             {
+                // Copy existing environment variables
+                foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
+                    bootstrapProcess.StartInfo.EnvironmentVariables[de.Key.ToString()] = de.Value.ToString();
+
+                // Add STEAM_RUNTIME=0 to the environment variables
+                bootstrapProcess.StartInfo.EnvironmentVariables["STEAM_RUNTIME"] = "0";
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    // Add LD_LIBRARY_PATH to the environment variables
+                    if (RuntimeInformation.OSArchitecture == Architecture.X86)
+                        bootstrapProcess.StartInfo.EnvironmentVariables["LD_LIBRARY_PATH"] = "/usr/lib/i386-linux-gnu";
+                    else bootstrapProcess.StartInfo.EnvironmentVariables["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu";
+
                 bootstrapProcess.Start();
                 ServerManager.UpdateServerStatus(ServerManager.ServerStatus.Busy);
 #if DEBUG
@@ -744,12 +724,34 @@ public static class BootstrapTool // : IDisposable
                 // Handling cancellation
                 using (var registration = token.Register(() =>
                 {
-                    if (!bootstrapProcess.HasExited)
+                    try
                     {
-#if DEBUG
-                        LogTool.Debug("Sending SIGINT to process.");
-#endif
-                        ProcessInterruptHelper.SendSigINT(bootstrapProcess);
+                        if (!bootstrapProcess.HasExited)
+                        {
+                            // Step 1: Try graceful SIGINT
+                            if (ProcessInterruptHelper.SendSigINT(bootstrapProcess))
+                            {
+                                // Wait to see if graceful shutdown works
+                                if (bootstrapProcess.WaitForExit(SHUTDOWN_TIMEOUT_MS))
+                                {
+                                    LogTool.Message("Process terminated gracefully");
+                                    return;
+                                }
+                                LogTool.Warning("Process did not exit after SIGINT within timeout");
+                            }
+                            else
+                            {
+                                LogTool.Warning("Failed to send interrupt signal");
+                            }
+
+                            // Step 2: Force kill as last resort
+                            LogTool.Warning("Attempting force kill");
+                            ProcessTerminationHelper.ForceKillProcess(bootstrapProcess);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogTool.Error($"Error during process shutdown: {ex}");
                     }
                 }))
                 {

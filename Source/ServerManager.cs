@@ -112,6 +112,8 @@ public class ServerManager : IDisposable
 
     private static async Task ManageServerAsync(string shellBin, string shellArgs, string modPath, CancellationToken token)
     {
+        const int SHUTDOWN_TIMEOUT_MS = 1000; // 1 second
+
         // Run the server process
         try
         {
@@ -182,7 +184,35 @@ public class ServerManager : IDisposable
                 // Handling cancellation
                 using (var registration = token.Register(() =>
                 {
-                    if (!serverProcess.HasExited) ProcessInterruptHelper.SendSigINT(serverProcess);
+                    try
+                    {
+                        if (!serverProcess.HasExited)
+                        {
+                            // Step 1: Try graceful SIGINT
+                            if (ProcessInterruptHelper.SendSigINT(serverProcess))
+                            {
+                                // Wait to see if graceful shutdown works
+                                if (serverProcess.WaitForExit(SHUTDOWN_TIMEOUT_MS))
+                                {
+                                    LogTool.Message("Process terminated gracefully");
+                                    return;
+                                }
+                                LogTool.Warning("Process did not exit after SIGINT within timeout");
+                            }
+                            else
+                            {
+                                LogTool.Warning("Failed to send interrupt signal");
+                            }
+
+                            // Step 2: Force kill as last resort
+                            LogTool.Warning("Attempting force kill");
+                            ProcessTerminationHelper.ForceKillProcess(serverProcess);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogTool.Error($"Error during process shutdown: {ex}");
+                    }
                 }))
                 {
                     await Task.Run(serverProcess.WaitForExit, token).ConfigureAwait(false);
